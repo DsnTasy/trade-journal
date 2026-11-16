@@ -13,12 +13,12 @@ content, and shows everything in a dashboard where **you approve every real acti
 | Phase | What | Status |
 |---|---|---|
 | 1 | Skeleton: config, database, logging, cost cap, approvals, dashboard | ✅ Done |
-| 2 | Product research | Next |
-| 3 | Supplier finder + profit calculator | |
+| 2 | Product research: scoring, saturation penalty, compliance flags, Opportunities page | ✅ Done |
+| 3 | Supplier finder + profit calculator | Next |
 | 4 | Competitor analyser (research only) | |
 | 5 | Content generator + claim checker | |
 | 6 | Video maker | |
-| 7 | Store publisher | |
+| 7 | Store publisher (Shopify) | |
 | 8 | Scheduler, notifications, polish | |
 
 ---
@@ -64,6 +64,21 @@ Press **Ctrl+C** in the terminal to stop the dashboard.
 
 ---
 
+## Finding products (phase 2)
+
+1. Follow **[research/README.md](research/README.md)**: list your product ideas in
+   `research/candidates.csv` and drop free Google Trends exports into `research/trends/`.
+2. Run `python run.py research`, which prints a ranked list with reasons.
+3. Open the dashboard → **Opportunities**. Click a product to see every number and its
+   source, then **Shortlist** or **Reject** it.
+
+How the score works: four factors (demand, trend, rough margin, competition), weighted
+in `config.yaml`. A factor with no data counts as *average*, so thin data can't top the
+list. Points are taken off for **saturation** (lots of advertisers, or many copies of the
+same ad) and for **seasonal** products. **Data %** shows how much was actually known.
+Products in your `avoid_categories` (cosmetics, toys, electrical and supplements by default)
+are shown last. Anything that might need safety rules is tagged **compliance review**.
+
 ## Commands
 
 | Command | What it does |
@@ -72,7 +87,8 @@ Press **Ctrl+C** in the terminal to stop the dashboard.
 | `python run.py status` | Show mode, budget used, and pending approvals |
 | `python run.py dashboard` | Open the dashboard at http://127.0.0.1:8000 |
 | `python run.py demo` | Add a clearly-labelled demo approval request |
-| `python run.py research / suppliers / profit / content / video / publish / all` | Arrive in later phases |
+| `python run.py research` | Score and rank your product ideas (`--explain 3` adds Claude summaries for the top 3: paid, a few pence) |
+| `python run.py suppliers / profit / content / video / publish / all` | Arrive in later phases |
 | `python run.py --dry-run <command>` | Force dry-run for this command, whatever config says |
 
 ## Settings you might change (`config.yaml`)
@@ -88,11 +104,13 @@ Your brand voice for product pages and ads lives in `brand.yaml`.
 
 ## API keys
 
-**Anthropic (Claude), needed from phase 2:**
+**Anthropic (Claude): optional in phase 2 (only for `--explain`), needed from phase 5:**
 1. Go to [console.anthropic.com](https://console.anthropic.com) and sign up.
 2. Add a payment method under **Billing** and, to be safe, set a low monthly spend limit there too.
 3. Go to **API Keys → Create Key**, and copy it.
 4. Open `.env` and paste it after `ANTHROPIC_API_KEY=` (no spaces or quotes).
+
+**Meta Ad Library (optional):** see [research/README.md](research/README.md).
 
 Other keys (CJ Dropshipping, Shopify, ...) will be explained when their phase arrives.
 

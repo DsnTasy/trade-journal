@@ -2,18 +2,31 @@
 {% block title %}Opportunities{% endblock %}
 {% block content %}
 <h1>Opportunities</h1>
-<p class="muted">Ranked products appear here once product research is built (phase 2). Every number will show its source and date.</p>
+<p class="muted">Ranked by score (0-100). <strong>Data</strong> shows how much of the scoring data was available.
+Scores are a filter, not a verdict. Click a product to see every number and where it came from.
+Run <code>python run.py research</code> to update.</p>
 {% if products %}
 <table>
-  <thead><tr><th>Product</th><th>Status</th><th>Updated</th><th>Notes</th></tr></thead>
+  <thead><tr><th>#</th><th>Product</th><th>Score</th><th>Data</th><th>Why it might work</th><th>Why it might not</th><th>Status</th></tr></thead>
   <tbody>
   {% for p in products %}
-    <tr><td>{{ p.name }}</td><td><span class="status s-{{ p.status.value }}">{{ p.status.value.replace('_', ' ') }}</span></td>
-        <td>{{ p.updated_at.strftime('%d %b %Y') }}</td><td>{{ p.notes or '' }}</td></tr>
+    {% set excluded = (p.score_details or {}).get('excluded') %}
+    <tr class="{{ 'excluded' if excluded else '' }}">
+      <td>{{ loop.index }}</td>
+      <td><a href="/products/{{ p.id }}"><strong>{{ p.name }}</strong></a>
+        {% if p.category %}<br><small class="muted">{{ p.category }}</small>{% endif %}
+        {% if p.compliance_flags %}<br><span class="tag warn">compliance review</span>{% endif %}
+        {% if excluded %}<br><span class="tag bad">avoided: {{ excluded|join(', ') }}</span>{% endif %}</td>
+      <td>{% if p.score is not none %}<span class="score">{{ '%.0f'|format(p.score) }}</span>{% else %}–{% endif %}</td>
+      <td>{% if p.confidence is not none %}<span class="{{ 'low' if p.confidence < settings.research.low_confidence_below else '' }}">{{ '%.0f'|format(p.confidence * 100) }}%</span>{% else %}–{% endif %}</td>
+      <td><ul class="reasons pro">{% for r in (p.reasons or {}).get('for', [])[:3] %}<li>{{ r }}</li>{% endfor %}</ul></td>
+      <td><ul class="reasons con">{% for r in (p.reasons or {}).get('against', [])[:3] %}<li>{{ r }}</li>{% endfor %}</ul></td>
+      <td>{% include "_status_controls.html" %}</td>
+    </tr>
   {% endfor %}
   </tbody>
 </table>
 {% else %}
-<p class="empty">No products yet.</p>
+<p class="empty">No products yet. See <code>research/README.md</code>, then run <code>python run.py research</code>.</p>
 {% endif %}
 {% endblock %}

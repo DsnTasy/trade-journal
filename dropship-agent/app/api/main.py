@@ -20,14 +20,16 @@ from app.core import approvals
 from app.core.config import Settings, get_settings
 from app.core.cost_tracker import CostTracker
 from app.core.db import init_db, make_engine, make_session_factory
-from app.core.logger import setup_file_logging
+from app.core.logger import log_event, setup_file_logging
 from app.core.models import (
     PIPELINE,
     ApprovalRequest,
     ApprovalStatus,
     CostEntry,
     LogEntry,
+    Metric,
     Product,
+    ProductStatus,
 )
 
 DASHBOARD_DIR = Path(__file__).resolve().parents[1] / "dashboard"
@@ -55,6 +57,8 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     app = FastAPI(title="Dropship Agent", docs_url="/api/docs")
     app.mount("/static", StaticFiles(directory=DASHBOARD_DIR / "static"), name="static")
     templates = Jinja2Templates(directory=DASHBOARD_DIR / "templates")
+    # Show 2.0 as "2" and 17.99 as "17.99" (no pointless trailing zeros).
+    templates.env.filters["num"] = lambda v: "no data" if v is None else f"{v:,.2f}".rstrip("0").rstrip(".")
 
     def get_session() -> Iterator[Session]:
         with session_factory() as session:
@@ -89,8 +93,43 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
 
     @app.get("/products", response_class=HTMLResponse)
     def products(request: Request, session: Session = Depends(get_session)):
-        rows = list(session.scalars(select(Product).order_by(Product.updated_at.desc())))
+        rows = list(session.scalars(select(Product)))
+        # Ranked: not-excluded first, then highest score; unscored products last.
+        rows.sort(key=lambda p: (bool((p.score_details or {}).get("excluded")), p.score is None, -(p.score or 0)))
         return render(request, "products.html", session, products=rows)
+
+    @app.get("/products/{product_id}", response_class=HTMLResponse)
+    def product_detail(request: Request, product_id: int, session: Session = Depends(get_session)):
+        product = session.get(Product, product_id)
+        if product is None:
+            raise HTTPException(404, "Product not found")
+        metrics = list(session.scalars(
+            select(Metric).where(Metric.product_id == product_id).order_by(Metric.retrieved_at.desc(), Metric.id.desc())
+        ))
+        latest, history, seen = [], [], set()
+        for m in metrics:  # newest first: the first of each name is the latest value
+            (history if m.name in seen else latest).append(m)
+            seen.add(m.name)
+        latest.sort(key=lambda m: m.name)
+        return render(request, "product_detail.html", session, p=product, metrics=latest, history=history)
+
+    @app.post("/products/{product_id}/status/{new_status}", response_class=HTMLResponse,
+              dependencies=[Depends(require_htmx)])
+    def set_status(request: Request, product_id: int, new_status: str, session: Session = Depends(get_session)):
+        # Only research-stage moves here. Later stages (approved/published) go through the approval queue.
+        allowed = {"shortlisted": ProductStatus.SHORTLISTED, "researched": ProductStatus.RESEARCHED,
+                   "rejected": ProductStatus.REJECTED}
+        product = session.get(Product, product_id)
+        if product is None or new_status not in allowed:
+            raise HTTPException(404)
+        if product.status not in (ProductStatus.RESEARCHED, ProductStatus.SHORTLISTED, ProductStatus.REJECTED):
+            raise HTTPException(409, "This product is past the research stage.")
+        old = product.status
+        product.status = allowed[new_status]
+        session.commit()
+        log_event(session, module="dashboard", action="status_change",
+                  message=f"{product.name}: {old.value} → {product.status.value}", dry_run=settings.dry_run)
+        return templates.TemplateResponse(request, "_status_controls.html", {"p": product})
 
     @app.get("/approvals", response_class=HTMLResponse)
     def approvals_page(request: Request, session: Session = Depends(get_session)):

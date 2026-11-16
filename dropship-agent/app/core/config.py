@@ -56,6 +56,37 @@ class BusinessConfig(BaseModel):
     vat_registration_threshold_gbp: float = 90000.0
 
 
+class ResearchWeights(BaseModel):
+    demand: float = 0.30
+    trend: float = 0.20
+    margin: float = 0.30
+    competition: float = 0.20
+
+
+class ResearchConfig(BaseModel):
+    candidates_file: str = "research/candidates.csv"
+    trends_dir: str = "research/trends"
+    weights: ResearchWeights = Field(default_factory=ResearchWeights)
+    target_gross_margin: float = Field(0.60, gt=0, le=1, description="Rough margin that scores full marks.")
+    competition_high: int = Field(50, gt=0, description="This many competitor stores = maximum competition.")
+    saturation_high: int = Field(30, gt=0, description="This many advertisers = maximum saturation penalty.")
+    saturation_max_penalty: float = Field(25.0, ge=0, description="Most points saturation can remove.")
+    seasonal_ratio: float = Field(2.5, gt=1, description="Peak / average interest above this = seasonal.")
+    seasonal_penalty: float = Field(5.0, ge=0)
+    low_confidence_below: float = Field(0.5, ge=0, le=1)
+    avoid_categories: list[str] = Field(default_factory=list)
+    # Meta Ad Library (optional, needs META_AD_LIBRARY_TOKEN in .env)
+    meta_enabled: bool = False
+    meta_api_version: str = "v21.0"
+    meta_countries: list[str] = Field(default_factory=lambda: ["IE", "FR", "DE"])
+    meta_max_pages: int = Field(3, ge=1, le=20)
+    request_delay_seconds: float = Field(1.0, ge=0)
+
+
+class StoreConfig(BaseModel):
+    platform: str = "shopify"  # "shopify" (chosen) or "custom"
+
+
 class Settings(BaseModel):
     # SAFETY: dry_run=True means nothing real happens (no publishing, emails, orders or ad spend).
     dry_run: bool = True
@@ -65,9 +96,12 @@ class Settings(BaseModel):
     budget: BudgetConfig = Field(default_factory=BudgetConfig)
     llm: LLMConfig = Field(default_factory=LLMConfig)
     business: BusinessConfig = Field(default_factory=BusinessConfig)
+    research: ResearchConfig = Field(default_factory=ResearchConfig)
+    store: StoreConfig = Field(default_factory=StoreConfig)
 
     # Secrets: filled from environment variables, never from config.yaml.
     anthropic_api_key: str | None = Field(default=None, exclude=True, repr=False)
+    meta_ad_library_token: str | None = Field(default=None, exclude=True, repr=False)
 
     def path(self, relative: str) -> Path:
         """Turn a path from config.yaml into an absolute path inside the project."""
@@ -86,6 +120,7 @@ def load_settings(config_path: Path | None = None, env_path: Path | None = None)
 
     settings = Settings(**data)
     settings.anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY") or None
+    settings.meta_ad_library_token = os.environ.get("META_AD_LIBRARY_TOKEN") or None
     return settings
 
 

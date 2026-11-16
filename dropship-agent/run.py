@@ -88,9 +88,38 @@ def _not_yet(name: str, phase: int) -> None:
 
 
 @cli.command()
-def research():
-    """Find and rank products (phase 2)."""
-    _not_yet("research", 2)
+def research(
+    explain: int = typer.Option(0, "--explain", help="Ask Claude for a plain-English summary of the top N "
+                                                     "(paid, needs ANTHROPIC_API_KEY). Default: off."),
+):
+    """Score and rank the product ideas in research/candidates.csv."""
+    from app.modules.product_research import run_research
+    from app.modules.product_research.sources import SourceError
+
+    settings, session = _session()
+    try:
+        report = run_research(session, settings, explain_with_ai=explain)
+    except SourceError as exc:
+        typer.echo(f"Can't run research: {exc}")
+        raise typer.Exit(1) from exc
+
+    typer.echo(f"Sources used: {', '.join(sorted(report.sources_used)) or 'none'}\n")
+    typer.echo(f"{'#':>2}  {'Score':>5}  {'Data':>4}  Product")
+    for i, r in enumerate(report.rows, 1):
+        tag = f"  [AVOIDED: {', '.join(r.excluded)}]" if r.excluded else ""
+        review = "  [compliance review]" if r.compliance_flags else ""
+        typer.echo(f"{i:>2}  {r.score:>5.1f}  {r.confidence:>4.0%}  {r.name}{tag}{review}")
+        for reason in r.reasons_for[:2]:
+            typer.echo(f"            + {reason}")
+        for reason in r.reasons_against[:2]:
+            typer.echo(f"            - {reason}")
+        if r.summary:
+            typer.echo(f"            AI: {r.summary}")
+    if report.problems:
+        typer.echo("\nThings to know:")
+        for p in report.problems:
+            typer.echo(f"  ! {p}")
+    typer.echo("\nFull details and sources: python run.py dashboard → Opportunities")
 
 
 @cli.command()

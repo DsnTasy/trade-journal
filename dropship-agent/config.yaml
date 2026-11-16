@@ -35,3 +35,28 @@ business:
   vat_registered: false
   vat_rate: 0.20
   vat_registration_threshold_gbp: 90000
+
+store:
+  platform: "shopify"           # you chose Shopify (store publisher is built in phase 7)
+
+research:
+  candidates_file: "research/candidates.csv"   # your list of product ideas (see research/README.md)
+  trends_dir: "research/trends"                # put Google Trends CSV exports here
+  # How much each factor counts towards the 0-100 score (they're rebalanced if data is missing).
+  weights: {demand: 0.30, trend: 0.20, margin: 0.30, competition: 0.20}
+  target_gross_margin: 0.60     # a rough margin of 60%+ scores full marks for margin
+  competition_high: 50          # 50+ competitor stores = maximum competition
+  saturation_high: 30           # 30+ advertisers running it = maximum saturation penalty
+  saturation_max_penalty: 25    # saturation can remove up to 25 points
+  seasonal_ratio: 2.5           # peak interest 2.5x the average = "seasonal"
+  seasonal_penalty: 5
+  low_confidence_below: 0.5     # flag scores based on less than half the data
+  # Categories you don't want to sell yet. Matching products are marked as excluded.
+  avoid_categories: ["cosmetics", "toys", "electrical", "supplements"]
+  # Meta Ad Library API (optional). Needs META_AD_LIBRARY_TOKEN in .env. For non-political
+  # ads it only covers ads shown in the EU, so we use EU countries as a stand-in for the UK.
+  meta_enabled: false
+  meta_api_version: "v21.0"
+  meta_countries: ["IE", "FR", "DE"]
+  meta_max_pages: 3
+  request_delay_seconds: 1.0

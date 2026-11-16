@@ -73,6 +73,14 @@ class Product(Base):
         Enum(ProductStatus, native_enum=False), default=ProductStatus.RESEARCHED
     )
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    category: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    # Filled in by product research (phase 2):
+    score: Mapped[float | None] = mapped_column(Float, nullable=True)  # 0-100
+    confidence: Mapped[float | None] = mapped_column(Float, nullable=True)  # 0-1: how much data we had
+    score_details: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    reasons: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # {"for": [...], "against": [...]}
+    compliance_flags: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    researched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 

@@ -7,7 +7,7 @@ pyyaml==6.0.3          # reads config.yaml and brand.yaml
 python-dotenv==1.2.4   # reads secrets from .env
 typer==0.29.1          # the `python run.py ...` command line
 anthropic==2.9.0       # official Claude API client
+httpx==0.28.1          # web requests to data-source APIs (also used by tests)
 
 # Testing only
 pytest==9.2.0          # runs the tests
-httpx==0.28.1          # lets tests "visit" dashboard pages without a browser

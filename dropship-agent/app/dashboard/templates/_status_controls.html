@@ -1,0 +1,9 @@
+<div id="status-{{ p.id }}" class="status-controls">
+  <span class="status s-{{ p.status.value }}">{{ p.status.value.replace('_', ' ') }}</span>
+  {% if p.status.value == 'researched' %}
+    <button class="approve small" hx-post="/products/{{ p.id }}/status/shortlisted" hx-target="#status-{{ p.id }}" hx-swap="outerHTML">Shortlist</button>
+    <button class="reject small" hx-post="/products/{{ p.id }}/status/rejected" hx-target="#status-{{ p.id }}" hx-swap="outerHTML">Reject</button>
+  {% elif p.status.value in ('shortlisted', 'rejected') %}
+    <button class="reject small" hx-post="/products/{{ p.id }}/status/researched" hx-target="#status-{{ p.id }}" hx-swap="outerHTML">Undo</button>
+  {% endif %}
+</div>

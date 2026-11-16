@@ -1,0 +1,3 @@
+name,category,keywords,est_unit_cost_gbp,est_shipping_gbp,est_sell_price_gbp,competitor_stores,ads_seen,source_note,notes
+EXAMPLE Pet hair remover roller,pet,pet hair remover;lint roller,3.20,2.50,17.99,12,6,CJ listing + Meta Ad Library check 16/11/2026,rows starting with EXAMPLE are ignored
+EXAMPLE Collapsible water bottle,outdoor,collapsible water bottle,,,,,,,blank numbers mean "unknown", not zero
