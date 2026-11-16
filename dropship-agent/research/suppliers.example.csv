@@ -1,0 +1,2 @@
+product,supplier_name,platform,url,currency,unit_cost,shipping_cost,shipping_days_min,shipping_days_max,warehouse,rating,review_count,orders_sold,moq,return_policy_days,responds_within_hours,has_ukca_ce,has_safety_docs,has_branding_info,source_note,notes
+EXAMPLE Pet hair remover roller,Example UK Supplies,CJ Dropshipping,https://example.com/listing,USD,4.10,2.90,3,5,UK,4.7,320,5000,1,30,12,unknown,unknown,yes,CJ listing 16/11/2026,rows whose product starts with EXAMPLE are ignored

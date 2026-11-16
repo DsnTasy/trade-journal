@@ -81,6 +81,9 @@ class Product(Base):
     reasons: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # {"for": [...], "against": [...]}
     compliance_flags: Mapped[list | None] = mapped_column(JSON, nullable=True)
     researched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Filled in by supplier finder / profit calculator (phase 3):
+    chosen_supplier_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    profit_overrides: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # your edited assumptions
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
@@ -148,3 +151,66 @@ class LogEntry(Base):
     cost_gbp: Mapped[float | None] = mapped_column(Float, nullable=True)
     dry_run: Mapped[bool] = mapped_column(Boolean, default=True)
     details: Mapped[dict] = mapped_column(JSON, default=dict)
+
+
+class Supplier(Base):
+    """One supplier offer for one product. Numbers come from the supplier's listing (see `source`)."""
+
+    __tablename__ = "suppliers"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id"))
+    name: Mapped[str] = mapped_column(String(200))
+    platform: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    warehouse: Mapped[str | None] = mapped_column(String(20), nullable=True)  # UK / EU / US / CN / other
+    unit_cost_gbp: Mapped[float | None] = mapped_column(Float, nullable=True)
+    shipping_cost_gbp: Mapped[float | None] = mapped_column(Float, nullable=True)
+    shipping_days_min: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    shipping_days_max: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    rating: Mapped[float | None] = mapped_column(Float, nullable=True)
+    review_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    orders_sold: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    moq: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    return_policy_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    responds_within_hours: Mapped[float | None] = mapped_column(Float, nullable=True)
+    has_ukca_ce: Mapped[str | None] = mapped_column(String(10), nullable=True)  # yes / no / None=unknown
+    has_safety_docs: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    has_branding_info: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    original_price: Mapped[str | None] = mapped_column(String(60), nullable=True)  # e.g. "4.10 USD"
+    source: Mapped[str] = mapped_column(String(300))
+    retrieved_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    score_details: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    red_flags: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    profit: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # latest profit calculation
+
+    product: Mapped[Product] = relationship()
+    messages: Mapped[list[SupplierMessage]] = relationship(back_populates="supplier", cascade="all, delete-orphan")
+
+
+class MessageStatus(str, enum.Enum):
+    DRAFT = "draft"
+    AWAITING_APPROVAL = "awaiting_approval"
+    SENT = "sent"
+    REPLIED = "replied"
+
+
+class SupplierMessage(Base):
+    """Outreach emails. Drafted automatically, NEVER sent without approval."""
+
+    __tablename__ = "supplier_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    supplier_id: Mapped[int] = mapped_column(ForeignKey("suppliers.id"))
+    subject: Mapped[str] = mapped_column(String(300))
+    body: Mapped[str] = mapped_column(Text)
+    status: Mapped[MessageStatus] = mapped_column(Enum(MessageStatus, native_enum=False), default=MessageStatus.DRAFT)
+    approval_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    reply_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    replied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    supplier: Mapped[Supplier] = relationship(back_populates="messages")

@@ -14,8 +14,8 @@ content, and shows everything in a dashboard where **you approve every real acti
 |---|---|---|
 | 1 | Skeleton: config, database, logging, cost cap, approvals, dashboard | ✅ Done |
 | 2 | Product research: scoring, saturation penalty, compliance flags, Opportunities page | ✅ Done |
-| 3 | Supplier finder + profit calculator | Next |
-| 4 | Competitor analyser (research only) | |
+| 3 | Supplier finder (scores, red flags, email drafts, reply tracking) + profit calculator | ✅ Done |
+| 4 | Competitor analyser (research only) | Next |
 | 5 | Content generator + claim checker | |
 | 6 | Video maker | |
 | 7 | Store publisher (Shopify) | |
@@ -79,6 +79,25 @@ same ad) and for **seasonal** products. **Data %** shows how much was actually k
 Products in your `avoid_categories` (cosmetics, toys, electrical and supplements by default)
 are shown last. Anything that might need safety rules is tagged **compliance review**.
 
+## Suppliers and profit (phase 3)
+
+1. Add suppliers for your shortlisted products to `research/suppliers.csv`
+   (see [research/README.md](research/README.md), section 4).
+2. Run `python run.py suppliers`. Each supplier gets a score, red flags and the **true profit per sale**
+   you'd make with them.
+3. In the dashboard:
+   - **Suppliers** lists every product's suppliers, best first. Click **Choose** to pick one.
+   - Click a supplier for its full breakdown and an **email draft** asking the questions that matter
+     (sample, UK delivery, returns, UKCA/CE, manufacturer details). Emails are **never sent for you**:
+     copy one into your email, click *I've sent it*, and paste the reply when it comes. Reply speed
+     feeds back into the score.
+   - **Profit calculator** shows every cost line, the most you can spend on ads per sale (break-even CPA),
+     break-even ROAS and a **go / marginal / no-go** verdict. Every assumption is editable and can be
+     saved per product.
+
+**The ad cost per sale (CPA) is the biggest guess in the whole sum.** The default is £10; set your own once
+you've run ads. Supplier scores are a filter, not a verdict: **always order a sample first.**
+
 ## Commands
 
 | Command | What it does |
@@ -88,7 +107,9 @@ are shown last. Anything that might need safety rules is tagged **compliance rev
 | `python run.py dashboard` | Open the dashboard at http://127.0.0.1:8000 |
 | `python run.py demo` | Add a clearly-labelled demo approval request |
 | `python run.py research` | Score and rank your product ideas (`--explain 3` adds Claude summaries for the top 3: paid, a few pence) |
-| `python run.py suppliers / profit / content / video / publish / all` | Arrive in later phases |
+| `python run.py suppliers` | Score suppliers and show true profit with each (`--draft-emails` drafts enquiries, never sends) |
+| `python run.py profit --price 19.99 --cost 4 --shipping 3` | Quick profit check with your default assumptions |
+| `python run.py content / video / publish / all` | Arrive in later phases |
 | `python run.py --dry-run <command>` | Force dry-run for this command, whatever config says |
 
 ## Settings you might change (`config.yaml`)
@@ -99,6 +120,8 @@ are shown last. Anything that might need safety rules is tagged **compliance rev
 - `budget.approval_threshold_gbp`: any single paid call estimated above this needs your approval (default **£1**).
 - `llm.default_model` / `llm.task_models`: which Claude model to use, per task if you like.
 - `business.vat_registered`: set `true` once you register for VAT.
+- `profit`: default costs and assumptions (card fees, Shopify fee, refund rate, ad cost per sale...). **Check these against your Shopify plan.**
+- `suppliers`: scoring weights, the 7-day delivery target and the 15-day slow-shipping flag.
 
 Your brand voice for product pages and ads lives in `brand.yaml`.
 

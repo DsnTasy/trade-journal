@@ -54,6 +54,8 @@ class BusinessConfig(BaseModel):
     vat_registered: bool = False
     vat_rate: float = 0.20
     vat_registration_threshold_gbp: float = 90000.0
+    usd_to_gbp: float = Field(0.79, gt=0, description="Used when a supplier lists prices in USD.")
+    eur_to_gbp: float = Field(0.85, gt=0, description="Used when a supplier lists prices in EUR.")
 
 
 class ResearchWeights(BaseModel):
@@ -83,6 +85,40 @@ class ResearchConfig(BaseModel):
     request_delay_seconds: float = Field(1.0, ge=0)
 
 
+class ProfitConfig(BaseModel):
+    """Default assumptions for the profit calculator. All editable in the dashboard per product."""
+    payment_fee_pct: float = Field(2.0, ge=0, description="Card fee % (Shopify Payments, UK cards).")
+    payment_fee_fixed_gbp: float = Field(0.25, ge=0)
+    third_party_gateway_fee_pct: float = Field(0.0, ge=0, description="Extra Shopify fee if NOT using Shopify Payments.")
+    platform_monthly_fee_gbp: float = Field(25.0, ge=0, description="Shopify plan + paid apps per month.")
+    expected_orders_per_month: int = Field(50, gt=0, description="Used to spread the monthly fee per order.")
+    packaging_gbp: float = Field(0.0, ge=0)
+    refund_rate: float = Field(0.05, ge=0, le=1, description="Share of orders refunded.")
+    chargeback_rate: float = Field(0.005, ge=0, le=1)
+    chargeback_fee_gbp: float = Field(15.0, ge=0)
+    cpa_gbp: float = Field(10.0, ge=0, description="Ad cost per sale: the biggest guess, edit it.")
+    go_min_profit_gbp: float = Field(5.0, ge=0)
+    go_min_margin: float = Field(0.15, ge=0, le=1)
+    max_comfortable_roas: float = Field(3.0, gt=0, description="Break-even ROAS above this = hard to profit from ads.")
+
+
+class SupplierWeights(BaseModel):
+    price: float = 0.30
+    delivery: float = 0.25
+    warehouse: float = 0.15
+    reliability: float = 0.15
+    terms: float = 0.15
+
+
+class SupplierConfig(BaseModel):
+    suppliers_file: str = "research/suppliers.csv"
+    weights: SupplierWeights = Field(default_factory=SupplierWeights)
+    target_delivery_days: int = Field(7, gt=0, description="Delivery within this many days scores well.")
+    slow_shipping_days: int = Field(15, gt=0, description="Flag anything this slow or slower.")
+    red_flag_penalty: float = Field(5.0, ge=0, description="Points removed per red flag.")
+    top_n: int = Field(3, gt=0)
+
+
 class StoreConfig(BaseModel):
     platform: str = "shopify"  # "shopify" (chosen) or "custom"
 
@@ -97,6 +133,8 @@ class Settings(BaseModel):
     llm: LLMConfig = Field(default_factory=LLMConfig)
     business: BusinessConfig = Field(default_factory=BusinessConfig)
     research: ResearchConfig = Field(default_factory=ResearchConfig)
+    profit: ProfitConfig = Field(default_factory=ProfitConfig)
+    suppliers: SupplierConfig = Field(default_factory=SupplierConfig)
     store: StoreConfig = Field(default_factory=StoreConfig)
 
     # Secrets: filled from environment variables, never from config.yaml.

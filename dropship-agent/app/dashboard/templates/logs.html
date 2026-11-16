@@ -4,7 +4,7 @@
 <h1>Logs & costs</h1>
 
 <h2>Paid calls</h2>
-<p class="muted">This month: £{{ '%.4f'|format(budget.spent_gbp) }} of £{{ '%.2f'|format(budget.cap_gbp) }} (£{{ '%.2f'|format(budget.remaining_gbp) }} left).</p>
+<p class="muted">This month: £{{ '%.4f'|format(budget.spent_gbp) }} of {{ budget.cap_gbp|gbp }} ({{ budget.remaining_gbp|gbp }} left).</p>
 {% if costs %}
 <table>
   <thead><tr><th>When (UTC)</th><th>Service</th><th>Operation</th><th>Cost</th></tr></thead>

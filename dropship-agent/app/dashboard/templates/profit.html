@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Profit calculator{% endblock %}
+{% block content %}
+<h1>Profit calculator</h1>
+<p class="muted">Every assumption is shown and editable. The result updates as you type.
+{% if product %}Saving stores these assumptions for <strong>{{ product.name }}</strong> and updates its supplier profits.{% endif %}</p>
+
+<form method="get" action="/profit" class="pick">
+  <label>Load a product:
+    <select name="product_id" onchange="this.form.submit()">
+      <option value="">(none: blank calculator)</option>
+      {% for p in products %}<option value="{{ p.id }}" {{ 'selected' if product and product.id == p.id else '' }}>{{ p.name }}</option>{% endfor %}
+    </select></label>
+  {% if supplier %}<span class="muted">Costs from supplier: <a href="/suppliers/{{ supplier.id }}">{{ supplier.name }}</a></span>{% endif %}
+</form>
+
+<div class="calc">
+  <form id="profit-form" hx-post="/profit/calc" hx-target="#profit-result" hx-swap="outerHTML"
+        hx-trigger="input changed delay:400ms, load">
+    {% for key, label, help in fields %}
+      <label>{{ label }}
+        <input name="{{ key }}" inputmode="decimal" value="{{ values[key] if values[key] is not none else '' }}">
+        {% if help %}<small class="muted">{{ help }}</small>{% endif %}
+      </label>
+    {% endfor %}
+    {% if product %}
+      <button type="button" class="approve" hx-post="/profit/save/{{ product.id }}" hx-include="#profit-form"
+              hx-target="#save-msg" hx-swap="innerHTML">Save for {{ product.name }}</button>
+      <span id="save-msg"></span>
+      <p class="muted"><small>Product cost and shipping always come from the supplier; the rest is saved per product.</small></p>
+    {% endif %}
+  </form>
+  <div>{% include "_profit_result.html" %}</div>
+</div>
+{% endblock %}

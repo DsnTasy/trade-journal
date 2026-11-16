@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Suppliers{% endblock %}
+{% block content %}
+<h1>Suppliers</h1>
+<p class="banner warn">{{ reminder }}</p>
+<p class="muted">Add suppliers in <code>research/suppliers.csv</code>, then run <code>python run.py suppliers</code>.
+Profit uses each supplier's costs plus your assumptions (edit them in the <a href="/profit">profit calculator</a>).</p>
+
+{% for g in groups %}
+  {% set p = g.product %}
+  <section class="group">
+    <h2><a href="/products/{{ p.id }}">{{ p.name }}</a>
+      <span class="status s-{{ p.status.value }}">{{ p.status.value.replace('_', ' ') }}</span></h2>
+    <p class="muted">Sell price: {% if g.price is not none %}{{ g.price|gbp }} <small>({{ g.price_source }})</small>{% else %}<strong>not set</strong>: profit can't be calculated yet{% endif %}
+      · <a href="/profit?product_id={{ p.id }}">Edit assumptions</a>
+      {% if p.status.value == 'supplier_chosen' %}
+        · <button class="approve small" hx-post="/products/{{ p.id }}/sample-ordered" hx-confirm="Record that you've ordered a sample?">I've ordered a sample</button>
+      {% endif %}</p>
+    <table>
+      <thead><tr><th>#</th><th>Supplier</th><th>Score</th><th>Landed cost</th><th>Delivery</th><th>Warehouse</th><th>Profit / sale</th><th>Red flags</th><th></th></tr></thead>
+      <tbody>
+      {% for s in g.suppliers %}
+        {% set pr = s.profit or {} %}
+        <tr class="{{ 'chosen' if p.chosen_supplier_id == s.id else '' }}">
+          <td>{{ loop.index }}{% if loop.index <= top_n %}<br><span class="tag ok">top {{ top_n }}</span>{% endif %}</td>
+          <td><a href="/suppliers/{{ s.id }}"><strong>{{ s.name }}</strong></a><br><small class="muted">{{ s.platform or '' }}</small></td>
+          <td><span class="score">{{ '%.0f'|format(s.score or 0) }}</span></td>
+          <td>{% if s.unit_cost_gbp is not none %}{{ (s.unit_cost_gbp + (s.shipping_cost_gbp or 0))|gbp }}{% else %}–{% endif %}</td>
+          <td>{% if s.shipping_days_max is not none %}{{ s.shipping_days_min ~ '–' if s.shipping_days_min is not none else 'up to ' }}{{ s.shipping_days_max }} days{% else %}<span class="low">unknown</span>{% endif %}</td>
+          <td>{{ s.warehouse or '–' }}</td>
+          <td>{% if pr.profit_gbp is defined %}<span class="verdict v-{{ pr.verdict }}">{{ pr.profit_gbp|gbp }} · {{ pr.verdict }}</span>{% else %}<small class="muted">{{ pr.error or '–' }}</small>{% endif %}</td>
+          <td>{% for f in s.red_flags or [] %}<span class="tag bad" title="{{ f.message }}">{{ f.flag.replace('_', ' ') }}</span> {% else %}<span class="muted">none</span>{% endfor %}</td>
+          <td>{% if p.chosen_supplier_id == s.id %}<span class="tag ok">chosen</span>
+              {% elif p.status.value in ('researched', 'shortlisted', 'supplier_chosen') %}
+              <button class="approve small" hx-post="/suppliers/{{ s.id }}/choose" hx-confirm="Choose {{ s.name }} for {{ p.name }}?">Choose</button>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+{% else %}
+<p class="empty">No suppliers yet. See <code>research/README.md</code> (section "Suppliers").</p>
+{% endfor %}
+{% endblock %}

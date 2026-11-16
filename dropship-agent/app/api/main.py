@@ -16,6 +16,7 @@ from sqlalchemy import func, select
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
+from app.api import supplier_routes
 from app.core import approvals
 from app.core.config import Settings, get_settings
 from app.core.cost_tracker import CostTracker
@@ -30,6 +31,7 @@ from app.core.models import (
     Metric,
     Product,
     ProductStatus,
+    Supplier,
 )
 
 DASHBOARD_DIR = Path(__file__).resolve().parents[1] / "dashboard"
@@ -40,8 +42,8 @@ NAV = [
     ("Opportunities", "/products", None),
     ("Approval queue", "/approvals", None),
     ("Logs & costs", "/logs", None),
-    ("Suppliers", None, 3),
-    ("Profit calculator", None, 3),
+    ("Suppliers", "/suppliers", None),
+    ("Profit calculator", "/profit", None),
     ("Competitor reports", None, 4),
     ("Content & videos", None, 5),
 ]
@@ -58,6 +60,7 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     app.mount("/static", StaticFiles(directory=DASHBOARD_DIR / "static"), name="static")
     templates = Jinja2Templates(directory=DASHBOARD_DIR / "templates")
     # Show 2.0 as "2" and 17.99 as "17.99" (no pointless trailing zeros).
+    templates.env.filters["gbp"] = lambda v: "–" if v is None else f"{'-' if v < 0 else ''}£{abs(v):,.2f}"
     templates.env.filters["num"] = lambda v: "no data" if v is None else f"{v:,.2f}".rstrip("0").rstrip(".")
 
     def get_session() -> Iterator[Session]:
@@ -111,7 +114,10 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
             (history if m.name in seen else latest).append(m)
             seen.add(m.name)
         latest.sort(key=lambda m: m.name)
-        return render(request, "product_detail.html", session, p=product, metrics=latest, history=history)
+        suppliers = sorted(session.scalars(select(Supplier).where(Supplier.product_id == product_id)),
+                           key=lambda s: -(s.score or 0))
+        return render(request, "product_detail.html", session, p=product, metrics=latest, history=history,
+                      suppliers=suppliers)
 
     @app.post("/products/{product_id}/status/{new_status}", response_class=HTMLResponse,
               dependencies=[Depends(require_htmx)])
@@ -157,6 +163,8 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
         entries = list(session.scalars(select(LogEntry).order_by(LogEntry.id.desc()).limit(200)))
         costs = list(session.scalars(select(CostEntry).order_by(CostEntry.id.desc()).limit(100)))
         return render(request, "logs.html", session, entries=entries, costs=costs)
+
+    supplier_routes.register(app, templates, settings, get_session, render, require_htmx)
 
     # ---------------- JSON API ----------------
     @app.get("/api/status")

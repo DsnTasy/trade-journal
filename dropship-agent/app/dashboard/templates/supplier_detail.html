@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}{{ s.name }}{% endblock %}
+{% block content %}
+<p><a href="/suppliers">← Suppliers</a> · <a href="/products/{{ p.id }}">{{ p.name }}</a></p>
+<h1>{{ s.name }} <small class="muted">for {{ p.name }}</small></h1>
+<p class="banner warn">{{ reminder }}</p>
+{% set pr = s.profit or {} %}
+{% set d = s.score_details or {} %}
+
+<section class="cards">
+  <div class="card"><div class="label">Score</div><div class="big">{{ '%.0f'|format(s.score or 0) }} <small>/ 100</small></div>
+    <small class="muted">{{ (s.red_flags or [])|length }} red flag(s), −{{ settings.suppliers.red_flag_penalty }} each</small></div>
+  <div class="card"><div class="label">Profit per sale</div>
+    {% if pr.profit_gbp is defined %}<div class="big"><span class="verdict v-{{ pr.verdict }}">{{ pr.profit_gbp|gbp }}</span></div>
+    <small class="muted">{{ pr.verdict }} · at {{ pr.inputs.cpa_gbp|gbp }} ad cost per sale</small>
+    {% else %}<div class="big">–</div><small class="muted">{{ pr.error }}</small>{% endif %}</div>
+  <div class="card"><div class="label">Break-even ad cost per sale</div>
+    <div class="big">{{ pr.break_even_cpa_gbp|gbp if pr.break_even_cpa_gbp is defined else '–' }}</div>
+    <small class="muted">Break-even ROAS {{ pr.break_even_roas if pr.break_even_roas else '–' }}</small></div>
+  <div class="card"><div class="label">Decision</div>
+    {% if p.chosen_supplier_id == s.id %}<span class="tag ok">chosen supplier</span>
+    {% elif p.status.value in ('researched', 'shortlisted', 'supplier_chosen') %}
+      <button class="approve" hx-post="/suppliers/{{ s.id }}/choose" hx-confirm="Choose {{ s.name }} for {{ p.name }}?">Choose this supplier</button>
+    {% else %}<span class="muted">Product is {{ p.status.value.replace('_', ' ') }}</span>{% endif %}</div>
+</section>
+
+<div class="two-col">
+  <div>
+    <h2>Red flags</h2>
+    <ul class="reasons con">{% for f in s.red_flags or [] %}<li>{{ f.message }}</li>{% else %}<li class="muted">None found (that doesn't make them trustworthy; order a sample).</li>{% endfor %}</ul>
+    <h2>Strengths</h2>
+    <ul class="reasons pro">{% for g in d.strengths or [] %}<li>{{ g }}</li>{% else %}<li class="muted">Nothing stands out.</li>{% endfor %}</ul>
+  </div>
+  <div>
+    <h2>Score breakdown</h2>
+    <table><thead><tr><th>Factor</th><th>Value (0-1)</th><th>Weight</th></tr></thead><tbody>
+    {% for name, value in (d.factors or {}).items() %}
+      <tr><td>{{ name|capitalize }}</td><td>{{ '%.2f'|format(value) if value is not none else 'no data (counted as 0.50)' }}</td><td>{{ settings.suppliers.weights[name] }}</td></tr>
+    {% endfor %}</tbody></table>
+  </div>
+</div>
+
+{% if pr.profit_gbp is defined %}
+<h2>Profit breakdown <small><a href="/profit?supplier_id={{ s.id }}">edit assumptions</a></small></h2>
+{% include "_profit_table.html" %}
+{% endif %}
+
+<h2>Supplier details</h2>
+<table><tbody>
+  <tr><th>Platform</th><td>{{ s.platform or '–' }}</td><th>Link</th><td>{% if s.url %}<a href="{{ s.url }}" target="_blank" rel="noopener noreferrer">open listing</a>{% else %}–{% endif %}</td></tr>
+  <tr><th>Unit cost</th><td>{{ s.unit_cost_gbp|gbp if s.unit_cost_gbp is not none else '–' }}</td><th>Shipping</th><td>{{ s.shipping_cost_gbp|gbp if s.shipping_cost_gbp is not none else '–' }}</td></tr>
+  <tr><th>Delivery</th><td>{{ (s.shipping_days_min|string ~ '–') if s.shipping_days_min is not none else '' }}{{ s.shipping_days_max if s.shipping_days_max is not none else 'unknown' }} days</td><th>Warehouse</th><td>{{ s.warehouse or 'unknown' }}</td></tr>
+  <tr><th>Rating</th><td>{{ s.rating if s.rating is not none else '–' }}★ ({{ s.review_count if s.review_count is not none else '?' }} reviews)</td><th>Orders sold</th><td>{{ s.orders_sold if s.orders_sold is not none else '–' }} <small class="muted">(can be inflated)</small></td></tr>
+  <tr><th>Min. order</th><td>{{ s.moq if s.moq is not none else '–' }}</td><th>Returns</th><td>{{ (s.return_policy_days|string ~ ' days') if s.return_policy_days is not none else 'unknown' }}</td></tr>
+  <tr><th>Replies within</th><td>{{ (s.responds_within_hours|string ~ 'h') if s.responds_within_hours is not none else 'unknown' }}</td><th>UKCA/CE · safety docs · brand info</th><td>{{ s.has_ukca_ce or '?' }} · {{ s.has_safety_docs or '?' }} · {{ s.has_branding_info or '?' }}</td></tr>
+</tbody></table>
+<p class="muted"><small>Source: {{ s.source }}{% if s.original_price %} ({{ s.original_price }}){% endif %} · collected {{ s.retrieved_at.strftime('%d %b %Y %H:%M') }} UTC</small></p>
+
+<h2>Emails</h2>
+<p class="muted">Emails are drafted for you but <strong>never sent automatically</strong>. Copy one into your email or the supplier's chat, then mark it as sent.</p>
+<button class="approve" hx-post="/suppliers/{{ s.id }}/draft-email">Draft an enquiry email</button>
+{% for m in messages %}
+  <div class="message">
+    <div><span class="status m-{{ m.status.value }}">{{ m.status.value.replace('_', ' ') }}</span> <strong>{{ m.subject }}</strong>
+      <small class="muted">· drafted {{ m.created_at.strftime('%d %b %H:%M') }}{% if m.sent_at %} · sent {{ m.sent_at.strftime('%d %b %H:%M') }}{% endif %}</small></div>
+    <textarea readonly rows="10" onclick="this.select()">{{ m.body }}</textarea>
+    {% if m.status.value == 'draft' %}
+      <button class="approve small" hx-post="/messages/{{ m.id }}/sent" hx-confirm="Have you sent this email yourself?">I've sent it</button>
+    {% endif %}
+    {% if m.status.value in ('sent', 'replied') %}
+      <form hx-post="/messages/{{ m.id }}/reply">
+        <label>Supplier's reply {% if m.replied_at %}(received {{ m.replied_at.strftime('%d %b %H:%M') }}){% endif %}</label>
+        <textarea name="reply_text" rows="4" placeholder="Paste their reply or a summary">{{ m.reply_text or '' }}</textarea>
+        <button class="approve small" type="submit">{{ 'Update reply' if m.reply_text else 'Save reply' }}</button>
+      </form>
+    {% endif %}
+  </div>
+{% endfor %}
+{% endblock %}

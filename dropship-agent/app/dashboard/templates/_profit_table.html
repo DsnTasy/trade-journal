@@ -1,0 +1,18 @@
+{# expects `pr`: a profit result as a dict or object #}
+<table class="money">
+  <tbody>
+    <tr><td>Customer pays (inc. VAT)</td><td>{{ pr.inputs.sell_price_gbp|gbp }}</td></tr>
+    <tr><td>− VAT owed to HMRC</td><td>{{ pr.vat_gbp|gbp }}{% if not pr.inputs.vat_registered %} <small class="muted">(not VAT-registered)</small>{% endif %}</td></tr>
+    <tr class="sub"><td>= Net revenue</td><td>{{ pr.net_revenue_gbp|gbp }}</td></tr>
+    <tr><td>− Product + shipping + packaging</td><td>{{ pr.product_costs_gbp|gbp }}</td></tr>
+    <tr><td>− Card fees</td><td>{{ pr.payment_fees_gbp|gbp }}</td></tr>
+    <tr><td>− Shopify fees (per order)</td><td>{{ pr.platform_fees_gbp|gbp }}</td></tr>
+    <tr><td>− Expected refunds</td><td>{{ pr.refund_cost_gbp|gbp }}</td></tr>
+    <tr><td>− Expected chargebacks</td><td>{{ pr.chargeback_cost_gbp|gbp }}</td></tr>
+    <tr class="sub"><td>= Break-even ad cost per sale (CPA)</td><td>{{ pr.break_even_cpa_gbp|gbp }}</td></tr>
+    <tr><td>− Ad cost per sale (your assumption)</td><td>{{ pr.inputs.cpa_gbp|gbp }}</td></tr>
+    <tr class="total"><td>= Profit per sale</td><td><span class="verdict v-{{ pr.verdict }}">{{ pr.profit_gbp|gbp }}</span> ({{ '%.0f'|format(pr.margin * 100) }}% margin)</td></tr>
+    <tr><td>Break-even ROAS</td><td>{{ pr.break_even_roas if pr.break_even_roas else 'n/a: loses money before ads' }}</td></tr>
+  </tbody>
+</table>
+{% if pr.notes %}<ul class="notes">{% for n in pr.notes %}<li>{{ n }}</li>{% endfor %}</ul>{% endif %}

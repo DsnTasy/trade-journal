@@ -5,5 +5,7 @@
     <button class="reject small" hx-post="/products/{{ p.id }}/status/rejected" hx-target="#status-{{ p.id }}" hx-swap="outerHTML">Reject</button>
   {% elif p.status.value in ('shortlisted', 'rejected') %}
     <button class="reject small" hx-post="/products/{{ p.id }}/status/researched" hx-target="#status-{{ p.id }}" hx-swap="outerHTML">Undo</button>
+  {% elif p.status.value == 'supplier_chosen' %}
+    <button class="approve small" hx-post="/products/{{ p.id }}/sample-ordered" hx-confirm="Record that you've ordered a sample?">Sample ordered</button>
   {% endif %}
 </div>

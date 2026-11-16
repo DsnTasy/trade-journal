@@ -2,7 +2,7 @@
   <td>{{ r.id }}</td>
   <td>{{ r.action_type.value.replace('_', ' ') }}</td>
   <td><strong>{{ r.title }}</strong>{% if r.description %}<br><small>{{ r.description }}</small>{% endif %}</td>
-  <td>£{{ '%.2f'|format(r.estimated_cost_gbp) }}</td>
+  <td>{{ r.estimated_cost_gbp|gbp }}</td>
   <td><span class="status a-{{ r.status.value }}">{{ r.status.value }}</span></td>
   <td class="actions">
     {% if r.status.value == 'pending' %}

@@ -32,9 +32,9 @@
       <div class="banner live">LIVE MODE: approved actions will really happen.</div>
     {% endif %}
     {% if budget.blocked %}
-      <div class="banner danger">Monthly budget used up (£{{ '%.2f'|format(budget.spent_gbp) }} of £{{ '%.2f'|format(budget.cap_gbp) }}). Paid calls are blocked until next month or until you raise the cap in config.yaml.</div>
+      <div class="banner danger">Monthly budget used up ({{ budget.spent_gbp|gbp }} of {{ budget.cap_gbp|gbp }}). Paid calls are blocked until next month or until you raise the cap in config.yaml.</div>
     {% elif budget.warning %}
-      <div class="banner warn">Budget warning: {{ '%.0f'|format(budget.fraction_used * 100) }}% of this month's £{{ '%.2f'|format(budget.cap_gbp) }} cap used.</div>
+      <div class="banner warn">Budget warning: {{ '%.0f'|format(budget.fraction_used * 100) }}% of this month's {{ budget.cap_gbp|gbp }} cap used.</div>
     {% endif %}
 
     {% block content %}{% endblock %}

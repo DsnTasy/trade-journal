@@ -42,6 +42,35 @@ python run.py research --explain 3  # + Claude summaries for the top 3 (paid, a 
 
 Then open the dashboard → **Opportunities**.
 
+## 4. Suppliers: `suppliers.csv` (phase 3)
+
+Once you've shortlisted products, find 2-5 suppliers for each (CJ Dropshipping, AliExpress,
+Alibaba, Zendrop, Spocket, UK/EU wholesalers) and copy their numbers into a sheet.
+Copy `suppliers.example.csv` to `suppliers.csv`. One row per supplier per product:
+
+| Column | Meaning |
+|---|---|
+| `product` | Must match the product `name` in candidates.csv |
+| `supplier_name`, `platform`, `url` | Who and where |
+| `currency` | `GBP`, `USD` or `EUR`: prices are converted to £ using the rates in config.yaml |
+| `unit_cost`, `shipping_cost` | Per unit, shipping to a UK customer |
+| `shipping_days_min`, `shipping_days_max` | Delivery time to the UK |
+| `warehouse` | `UK`, `EU` (or an EU country), `US`, `CN` |
+| `rating`, `review_count`, `orders_sold` | From the listing (these can be faked; the system checks for odd patterns) |
+| `moq` | Minimum order quantity (1 = true dropshipping) |
+| `return_policy_days` | 0 = no returns |
+| `responds_within_hours` | If you know it. It's also filled in automatically when you log a reply |
+| `has_ukca_ce`, `has_safety_docs`, `has_branding_info` | `yes`, `no` or blank (unknown) |
+| `source_note` | Where and when you got the numbers |
+
+Blank = unknown (counts as average, never as good). Then run:
+
+```bash
+python run.py suppliers                 # score suppliers + true profit with each
+python run.py suppliers --draft-emails  # also draft (never send) enquiries to the top 3
+python run.py profit --price 19.99 --cost 4 --shipping 3   # quick profit check
+```
+
 ## Optional: Meta Ad Library API (ad saturation, free but needs setup)
 
 Meta's official API gives advertiser counts automatically instead of you counting `ads_seen`.

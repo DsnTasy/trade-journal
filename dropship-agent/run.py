@@ -83,6 +83,10 @@ def demo():
     typer.echo(f"Created demo approval request #{req.id}. Open the dashboard → Approval queue.")
 
 
+def _gbp(v: float) -> str:
+    return f"{'-' if v < 0 else ''}£{abs(v):,.2f}"
+
+
 def _not_yet(name: str, phase: int) -> None:
     typer.echo(f"'{name}' is built in phase {phase}. Nothing was run.")
 
@@ -123,15 +127,81 @@ def research(
 
 
 @cli.command()
-def suppliers():
-    """Find and score suppliers (phase 3)."""
-    _not_yet("suppliers", 3)
+def suppliers(
+    draft_emails: bool = typer.Option(False, "--draft-emails",
+                                      help="Draft (never send) enquiry emails to the top suppliers of shortlisted products."),
+):
+    """Score the suppliers in research/suppliers.csv and show true profit with each."""
+    from app.core.models import ProductStatus
+    from app.modules.product_research.sources import SourceError
+    from app.modules.supplier_finder import REMINDER, import_suppliers
+    from app.modules.supplier_finder.service import draft_email
+
+    settings, session = _session()
+    try:
+        report = import_suppliers(session, settings)
+    except SourceError as exc:
+        typer.echo(f"Can't load suppliers: {exc}")
+        raise typer.Exit(1) from exc
+
+    top_n = settings.suppliers.top_n
+    typer.echo(f"Imported {report.imported} suppliers. {REMINDER}\n")
+    for product_id, sups in report.by_product.items():
+        product = session.get(Product, product_id)
+        typer.echo(f"{product.name}  [{product.status.value}]")
+        for i, s in enumerate(sups[:top_n], 1):
+            pr = s.profit or {}
+            money = (f"{_gbp(pr['profit_gbp'])}/sale ({pr['verdict']})" if "profit_gbp" in pr
+                     else pr.get("error", "profit unknown"))
+            days = f"{s.shipping_days_max}d" if s.shipping_days_max is not None else "?d"
+            typer.echo(f"  {i}. {s.score:5.1f}  {s.name:<28} {s.warehouse or '?':<3} {days:<4} {money}")
+            for f in (s.red_flags or [])[:3]:
+                typer.echo(f"        ! {f['message']}")
+        if len(sups) > top_n:
+            typer.echo(f"     (+{len(sups) - top_n} more in the dashboard)")
+        if draft_emails and product.status in (ProductStatus.SHORTLISTED, ProductStatus.SUPPLIER_CHOSEN):
+            for s in sups[:top_n]:
+                draft_email(session, settings, s)
+            typer.echo(f"     Drafted emails to the top {min(top_n, len(sups))} (NOT sent: see dashboard).")
+        typer.echo("")
+    if report.problems:
+        typer.echo("Things to know:")
+        for p in report.problems:
+            typer.echo(f"  ! {p}")
+    typer.echo("Details, emails and profit breakdowns: python run.py dashboard → Suppliers")
 
 
 @cli.command()
-def profit():
-    """Calculate true profit (phase 3)."""
-    _not_yet("profit", 3)
+def profit(
+    price: float = typer.Option(..., help="Sell price the customer pays, inc. VAT (£)."),
+    cost: float = typer.Option(..., help="Product cost from the supplier (£)."),
+    shipping: float = typer.Option(0.0, help="Shipping cost per order (£)."),
+    cpa: float = typer.Option(None, help="Ad cost per sale (£). Default from config.yaml."),
+):
+    """Quick profit check, e.g.  python run.py profit --price 19.99 --cost 4 --shipping 3"""
+    from app.modules.profit_calculator import ProfitInputs, calculate
+
+    settings = get_settings()
+    i = ProfitInputs.from_config(settings.profit, settings.business, sell_price_gbp=price, unit_cost_gbp=cost,
+                                 shipping_gbp=shipping, cpa_gbp=cpa)
+    try:
+        r = calculate(i, settings.profit, settings.business)
+    except ValueError as exc:
+        typer.echo(f"Can't calculate: {exc}")
+        raise typer.Exit(1) from exc
+    rows = [("Customer pays (inc. VAT)", price), ("- VAT", r.vat_gbp), ("= Net revenue", r.net_revenue_gbp),
+            ("- Product + shipping + packaging", r.product_costs_gbp), ("- Card fees", r.payment_fees_gbp),
+            ("- Shopify fees per order", r.platform_fees_gbp), ("- Expected refunds", r.refund_cost_gbp),
+            ("- Expected chargebacks", r.chargeback_cost_gbp), ("= Break-even ad cost per sale", r.break_even_cpa_gbp),
+            ("- Ad cost per sale (assumed)", i.cpa_gbp), ("= PROFIT PER SALE", r.profit_gbp)]
+    for label, value in rows:
+        typer.echo(f"  {label:<34} {_gbp(value):>9}")
+    typer.echo(f"  {'Margin':<34} {r.margin:>9.0%}")
+    typer.echo(f"  {'Break-even ROAS':<34} {r.break_even_roas if r.break_even_roas else 'n/a':>9}")
+    typer.echo(f"\n  Verdict: {r.verdict.upper()}")
+    for n in r.notes:
+        typer.echo(f"  ! {n}")
+    typer.echo("\n  Assumptions come from config.yaml → profit. Edit them there or in the dashboard.")
 
 
 @cli.command()

@@ -103,7 +103,10 @@ def test_dashboard_opportunities_and_shortlist(session, research_settings, engin
     assert "Google Trends CSV export" in detail and "CJ 16/11" in detail
     assert "Earlier values" not in detail
     run_research(session, research_settings)  # second run: older values move into history
-    assert "Earlier values" in client.get(f"/products/{p.id}").text
+    detail = client.get(f"/products/{p.id}").text
+    assert detail.count("Earlier values") == 1
+    assert detail.count("<h2>Data and sources (latest)</h2>") == 1
+    assert len(detail) < 60_000, "product page is suspiciously large"
 
     assert client.post(f"/products/{p.id}/status/shortlisted").status_code == 403  # needs dashboard button
     resp = client.post(f"/products/{p.id}/status/shortlisted", headers={"HX-Request": "true"})

@@ -73,3 +73,33 @@ button.small { padding: 3px 9px; font-size: 13px; }
 @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
 .history { margin-top: 12px; }
 .history summary { cursor: pointer; color: var(--accent); margin-bottom: 8px; }
+
+/* Phase 3: suppliers & profit */
+.group { margin-bottom: 28px; }
+.group h2 { display: flex; gap: 10px; align-items: center; }
+.tag.ok { background: #e3f4ea; color: var(--ok); }
+tr.chosen td { background: #f2faf5; }
+.verdict { font-weight: 700; white-space: nowrap; }
+.v-go { color: var(--ok); }
+.v-marginal { color: var(--warn); }
+.v-no-go { color: var(--bad); }
+.verdict-big { font-size: 22px; font-weight: 700; margin-bottom: 10px; }
+.s-supplier_chosen, .s-sample_ordered { background: #e8eefc; color: #23408f; }
+.m-replied { background: #e3f4ea; color: var(--ok); }
+.m-sent { background: #e8eefc; color: #23408f; }
+.message { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin: 12px 0; }
+.message textarea, .calc input, .pick select { width: 100%; font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 5px; }
+.message textarea { margin: 8px 0; font-size: 13px; }
+.message label { display: block; font-size: 13px; color: var(--muted); }
+.calc { display: grid; grid-template-columns: minmax(260px, 1fr) minmax(300px, 1.2fr); gap: 24px; align-items: start; }
+.calc form label { display: block; margin-bottom: 10px; font-size: 14px; font-weight: 500; }
+.calc form small { display: block; font-weight: 400; }
+.pick { margin-bottom: 16px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.pick select { width: auto; }
+table.money td:last-child { text-align: right; white-space: nowrap; }
+table.money tr.sub td { font-weight: 600; background: #fafbfc; }
+table.money tr.total td { font-weight: 700; font-size: 16px; }
+.notes { font-size: 13px; color: var(--warn); }
+.saved { color: var(--ok); margin-left: 8px; }
+@media (max-width: 800px) { .calc { grid-template-columns: 1fr; } }
+.tag { white-space: nowrap; }

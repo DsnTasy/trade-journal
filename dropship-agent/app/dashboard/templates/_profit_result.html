@@ -1,0 +1,11 @@
+<div id="profit-result">
+{% if error %}
+  <p class="banner danger">{{ error }}</p>
+{% elif result %}
+  {% set pr = result %}
+  <div class="verdict-big v-{{ pr.verdict }}">{{ pr.verdict|upper }} · {{ pr.profit_gbp|gbp }} per sale</div>
+  {% include "_profit_table.html" %}
+{% else %}
+  <p class="empty">Enter at least a sell price and product cost.</p>
+{% endif %}
+</div>

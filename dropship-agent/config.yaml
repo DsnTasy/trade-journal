@@ -35,6 +35,8 @@ business:
   vat_registered: false
   vat_rate: 0.20
   vat_registration_threshold_gbp: 90000
+  usd_to_gbp: 0.79              # exchange-rate assumptions for supplier prices in USD / EUR
+  eur_to_gbp: 0.85
 
 store:
   platform: "shopify"           # you chose Shopify (store publisher is built in phase 7)
@@ -60,3 +62,27 @@ research:
   meta_countries: ["IE", "FR", "DE"]
   meta_max_pages: 3
   request_delay_seconds: 1.0
+
+profit:
+  # Default assumptions. CHECK THESE against your own Shopify plan; edit per product in the dashboard.
+  payment_fee_pct: 2.0          # Shopify Payments card fee % (UK cards; depends on your plan)
+  payment_fee_fixed_gbp: 0.25   # ...plus this per order
+  third_party_gateway_fee_pct: 0.0  # only if you DON'T use Shopify Payments
+  platform_monthly_fee_gbp: 25  # Shopify plan + paid apps per month
+  expected_orders_per_month: 50 # spreads the monthly fee across orders
+  packaging_gbp: 0.0            # extra packaging/inserts per order, if any
+  refund_rate: 0.05             # 5% of orders refunded (money back, goods usually not recovered)
+  chargeback_rate: 0.005        # 0.5% of orders disputed
+  chargeback_fee_gbp: 15        # fee per chargeback
+  cpa_gbp: 10                   # ad cost per sale: your biggest unknown, test and update it
+  go_min_profit_gbp: 5          # "go" needs at least £5 profit per sale after ads...
+  go_min_margin: 0.15           # ...and a 15% margin after ads
+  max_comfortable_roas: 3.0     # break-even ROAS above 3 = hard to make money with ads
+
+suppliers:
+  suppliers_file: "research/suppliers.csv"
+  weights: {price: 0.30, delivery: 0.25, warehouse: 0.15, reliability: 0.15, terms: 0.15}
+  target_delivery_days: 7       # UK delivery within 7 days scores well
+  slow_shipping_days: 15        # 15+ days gets a red flag
+  red_flag_penalty: 5           # points removed per red flag
+  top_n: 3                      # how many suppliers to show per product
