@@ -1,0 +1,17 @@
+# Secrets
+.env
+
+# Local data (database, cache, logs) - stays on your computer
+data/
+logs/
+output/videos/*
+output/reports/*
+!output/videos/.gitkeep
+!output/reports/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/

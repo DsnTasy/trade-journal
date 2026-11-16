@@ -1,0 +1,37 @@
+# Dropship Agent settings. Safe to commit: NO secrets here (they go in .env).
+
+# SAFETY SWITCH. true = nothing real happens (no publishing, emails, orders, ad spend).
+# Only set to false when you're ready, and approvals are still required either way.
+dry_run: true
+
+database_url: "sqlite:///data/dropship.db"
+log_file: "logs/app.log"
+llm_cache_dir: "data/llm_cache"
+
+budget:
+  monthly_cap_gbp: 25.00        # Hard cap for ALL paid API calls per calendar month.
+  warn_at_fraction: 0.8         # Warn at 80% of the cap.
+  approval_threshold_gbp: 1.00  # A single call estimated above this needs your approval.
+
+llm:
+  default_model: "claude-opus-5-5"
+  # Optional per-task cheaper models, e.g.:
+  # task_models:
+  #   scoring: "claude-haiku-5-5"
+  task_models: {}
+  effort: "medium"              # low | medium | high. Higher = better but more expensive.
+  max_tokens: 4000
+  usd_to_gbp: 0.79              # Assumption: update occasionally. Anthropic bills in USD.
+  # Prices in USD per million tokens (checked November 2026). Check anthropic.com/pricing occasionally
+  # and update. Unknown models are refused rather than guessed.
+  prices:
+    claude-opus-5-5:   {input_usd_per_mtok: 4.00, output_usd_per_mtok: 20.00, cache_read_usd_per_mtok: 0.20, cache_write_usd_per_mtok: 5.00}
+    claude-sonnet-5-5: {input_usd_per_mtok: 2.00, output_usd_per_mtok: 10.00, cache_read_usd_per_mtok: 0.10, cache_write_usd_per_mtok: 2.50}
+    claude-haiku-5-5:  {input_usd_per_mtok: 0.10, output_usd_per_mtok: 0.50, cache_read_usd_per_mtok: 0.01, cache_write_usd_per_mtok: 0.125}
+    claude-opus-5:     {input_usd_per_mtok: 5.00, output_usd_per_mtok: 25.00, cache_read_usd_per_mtok: 0.50, cache_write_usd_per_mtok: 6.25}
+
+business:
+  currency: "GBP"
+  vat_registered: false
+  vat_rate: 0.20
+  vat_registration_threshold_gbp: 90000

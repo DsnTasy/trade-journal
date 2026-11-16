@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Logs & costs{% endblock %}
+{% block content %}
+<h1>Logs & costs</h1>
+
+<h2>Paid calls</h2>
+<p class="muted">This month: £{{ '%.4f'|format(budget.spent_gbp) }} of £{{ '%.2f'|format(budget.cap_gbp) }} (£{{ '%.2f'|format(budget.remaining_gbp) }} left).</p>
+{% if costs %}
+<table>
+  <thead><tr><th>When (UTC)</th><th>Service</th><th>Operation</th><th>Cost</th></tr></thead>
+  <tbody>
+  {% for c in costs %}
+    <tr><td>{{ c.created_at.strftime('%d %b %H:%M') }}</td><td>{{ c.service }}</td><td>{{ c.operation }}</td><td>£{{ '%.4f'|format(c.cost_gbp) }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty">No paid calls yet.</p>
+{% endif %}
+
+<h2>Activity log</h2>
+{% if entries %}
+<table>
+  <thead><tr><th>When (UTC)</th><th>Level</th><th>What</th><th>Message</th><th>Source</th><th>Mode</th></tr></thead>
+  <tbody>
+  {% for e in entries %}
+    <tr class="lvl-{{ e.level|lower }}">
+      <td>{{ e.created_at.strftime('%d %b %H:%M:%S') }}</td><td>{{ e.level }}</td><td>{{ e.module }}.{{ e.action }}</td>
+      <td>{{ e.message }}</td><td>{{ e.source or '' }}</td><td>{{ 'dry run' if e.dry_run else 'live' }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty">No activity yet.</p>
+{% endif %}
+{% endblock %}

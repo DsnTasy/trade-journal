@@ -1,0 +1,13 @@
+# Exact versions are pinned so the project behaves the same on every computer.
+fastapi==0.163.1       # web framework for the dashboard and API
+uvicorn==0.54.0        # runs the web server
+sqlalchemy==2.1.8      # talks to the SQLite database
+jinja2==3.1.6          # HTML templates for the dashboard
+pyyaml==6.0.3          # reads config.yaml and brand.yaml
+python-dotenv==1.2.4   # reads secrets from .env
+typer==0.29.1          # the `python run.py ...` command line
+anthropic==2.9.0       # official Claude API client
+
+# Testing only
+pytest==9.2.0          # runs the tests
+httpx==0.28.1          # lets tests "visit" dashboard pages without a browser

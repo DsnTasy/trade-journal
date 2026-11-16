@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Dashboard{% endblock %} · Dropship Agent</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <!-- HTMX 2.0.4 (bundled locally so the dashboard works offline): lets buttons
+       update part of the page without writing JavaScript -->
+  <script src="/static/htmx.min.js"></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">Dropship Agent</div>
+    <nav>
+      {% for label, href, phase in nav %}
+        {% if href %}
+          <a href="{{ href }}" class="{{ 'active' if path == href else '' }}">{{ label }}
+            {% if href == '/approvals' and pending_count %}<span class="badge">{{ pending_count }}</span>{% endif %}
+          </a>
+        {% else %}
+          <span class="disabled" title="Built in phase {{ phase }}">{{ label }} <small>phase {{ phase }}</small></span>
+        {% endif %}
+      {% endfor %}
+    </nav>
+  </aside>
+
+  <main>
+    {% if settings.dry_run %}
+      <div class="banner dry">DRY-RUN MODE: nothing is published, sent, ordered or paid for. Actions are only logged.</div>
+    {% else %}
+      <div class="banner live">LIVE MODE: approved actions will really happen.</div>
+    {% endif %}
+    {% if budget.blocked %}
+      <div class="banner danger">Monthly budget used up (£{{ '%.2f'|format(budget.spent_gbp) }} of £{{ '%.2f'|format(budget.cap_gbp) }}). Paid calls are blocked until next month or until you raise the cap in config.yaml.</div>
+    {% elif budget.warning %}
+      <div class="banner warn">Budget warning: {{ '%.0f'|format(budget.fraction_used * 100) }}% of this month's £{{ '%.2f'|format(budget.cap_gbp) }} cap used.</div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

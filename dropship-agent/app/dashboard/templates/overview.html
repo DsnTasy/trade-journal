@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Overview{% endblock %}
+{% block content %}
+<h1>Overview</h1>
+
+<section class="cards">
+  <div class="card">
+    <div class="label">API spend this month</div>
+    <div class="big">£{{ '%.2f'|format(budget.spent_gbp) }} <small>/ £{{ '%.2f'|format(budget.cap_gbp) }}</small></div>
+    <div class="meter"><div class="fill {{ 'warn' if budget.warning else '' }}" style="width: {{ [budget.fraction_used * 100, 100]|min }}%"></div></div>
+  </div>
+  <div class="card">
+    <div class="label">Waiting for your approval</div>
+    <div class="big">{{ pending_count }}</div>
+    <a href="/approvals">Open approval queue →</a>
+  </div>
+  <div class="card">
+    <div class="label">Mode</div>
+    <div class="big">{{ 'Dry run' if settings.dry_run else 'Live' }}</div>
+    <small>Change <code>dry_run</code> in config.yaml</small>
+  </div>
+</section>
+
+<h2>Product pipeline</h2>
+<ol class="pipeline">
+  {% for name, count in pipeline %}
+    <li><span class="count">{{ count }}</span>{{ name }}</li>
+  {% endfor %}
+</ol>
+
+<h2>Recent activity</h2>
+{% if recent %}
+<table>
+  <thead><tr><th>When (UTC)</th><th>Level</th><th>What</th><th>Message</th></tr></thead>
+  <tbody>
+  {% for e in recent %}
+    <tr class="lvl-{{ e.level|lower }}"><td>{{ e.created_at.strftime('%d %b %H:%M') }}</td><td>{{ e.level }}</td><td>{{ e.module }}.{{ e.action }}</td><td>{{ e.message }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty">Nothing yet. Try <code>python run.py demo</code> to add a sample approval request.</p>
+{% endif %}
+{% endblock %}

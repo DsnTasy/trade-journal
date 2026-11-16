@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Opportunities{% endblock %}
+{% block content %}
+<h1>Opportunities</h1>
+<p class="muted">Ranked products appear here once product research is built (phase 2). Every number will show its source and date.</p>
+{% if products %}
+<table>
+  <thead><tr><th>Product</th><th>Status</th><th>Updated</th><th>Notes</th></tr></thead>
+  <tbody>
+  {% for p in products %}
+    <tr><td>{{ p.name }}</td><td><span class="status s-{{ p.status.value }}">{{ p.status.value.replace('_', ' ') }}</span></td>
+        <td>{{ p.updated_at.strftime('%d %b %Y') }}</td><td>{{ p.notes or '' }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty">No products yet.</p>
+{% endif %}
+{% endblock %}

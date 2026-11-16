@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Approval queue{% endblock %}
+{% block content %}
+<h1>Approval queue</h1>
+<p class="muted">Nothing is published, sent, ordered or paid for until you approve it here.
+{% if settings.dry_run %}In dry-run mode, approved actions are only logged.{% endif %}</p>
+
+<h2>Waiting for you</h2>
+{% if pending %}
+<table>
+  <thead><tr><th>#</th><th>Action</th><th>Details</th><th>Est. cost</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+  {% for r in pending %}{% include "_approval_row.html" %}{% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty">Nothing waiting.</p>
+{% endif %}
+
+<h2>History</h2>
+{% if decided %}
+<table>
+  <thead><tr><th>#</th><th>Action</th><th>Details</th><th>Est. cost</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+  {% for r in decided %}{% include "_approval_row.html" %}{% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty">No decisions yet.</p>
+{% endif %}
+{% endblock %}

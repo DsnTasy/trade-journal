@@ -1,0 +1,13 @@
+# Brand voice used by the content generator (phase 5). Edit freely.
+store_name: "Your Store Name"
+tone: "friendly, clear, honest, no hype"
+audience: "UK shoppers looking for practical, good-value products"
+spelling: "British English"
+avoid:
+  - "best / #1 / guaranteed (unless we can prove it)"
+  - "fake urgency (e.g. 'only 2 left!' when untrue)"
+  - "health or medical claims"
+  - "invented reviews or testimonials"
+promises:
+  returns_days: 14
+  delivery_estimate: "Shown per product from the supplier's real delivery times"
