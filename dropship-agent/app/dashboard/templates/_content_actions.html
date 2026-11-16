@@ -1,0 +1,13 @@
+{# expects `item` #}
+{% set blockers = (item.findings or [])|selectattr('severity', 'equalto', 'high')|list %}
+<div class="actions-row">
+  <span class="status a-{{ item.status.value }}">{{ item.status.value }}</span>
+  <small class="muted">v{{ item.version }}{{ ' · edited by you' if item.edited }}{% if item.cost_gbp %} · cost {{ item.cost_gbp|gbp }}{% endif %}</small>
+  {% if item.status.value != 'approved' %}
+    <button class="approve small" hx-post="/content/item/{{ item.id }}/approve" {% if blockers %}disabled title="Fix the must-fix issues first"{% endif %}>Approve</button>
+  {% endif %}
+  {% if item.status.value != 'rejected' %}
+    <button class="reject small" hx-post="/content/item/{{ item.id }}/reject">Reject</button>
+  {% endif %}
+  <a href="/content/item/{{ item.id }}/history"><small>versions</small></a>
+</div>

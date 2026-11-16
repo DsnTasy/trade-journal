@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Content{% endblock %}
+{% block content %}
+<h1>Content</h1>
+<p class="muted">Product pages and ad scripts written by Claude from your facts only, then checked for risky claims.
+Everything starts as a draft. Nothing is published from here.</p>
+{% if rows %}
+<table>
+  <thead><tr><th>Product</th><th>Status</th><th>Product page</th><th>Ad scripts</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+    <tr><td><a href="/content/{{ r.p.id }}"><strong>{{ r.p.name }}</strong></a></td>
+      <td><span class="status s-{{ r.p.status.value }}">{{ r.p.status.value.replace('_', ' ') }}</span></td>
+      <td>{% if r.page %}<span class="status a-{{ r.page.status.value }}">{{ r.page.status.value }}</span>
+          {% set h = (r.page.findings or [])|selectattr('severity', 'equalto', 'high')|list %}{% if h %}<span class="tag bad">{{ h|length }} to fix</span>{% endif %}
+          {% else %}<span class="muted">not written</span>{% endif %}</td>
+      <td>{% for a in r.ads %}<span class="status a-{{ a.status.value }}" title="{{ a.angle }}">{{ a.angle.replace('_', ' ') }}</span> {% else %}<span class="muted">not written</span>{% endfor %}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty">No products yet. Shortlist products first (Opportunities), ideally with a chosen supplier so delivery facts are known.</p>
+{% endif %}
+{% endblock %}

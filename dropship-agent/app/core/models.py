@@ -244,3 +244,34 @@ class CompetitorReport(Base):
     def facts(self) -> dict:
         """Your manual entries win over automatic ones."""
         return {**(self.auto_facts or {}), **{k: v for k, v in (self.manual_facts or {}).items() if v is not None}}
+
+
+class ContentStatus(str, enum.Enum):
+    DRAFT = "draft"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    SUPERSEDED = "superseded"  # replaced by a newer version
+
+
+class ContentItem(Base):
+    """A product page or one ad script. Always starts as a draft; you approve it in the dashboard."""
+
+    __tablename__ = "content_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id"))
+    kind: Mapped[str] = mapped_column(String(30))  # product_page | ad_script
+    angle: Mapped[str | None] = mapped_column(String(40), nullable=True)  # ad angle
+    data: Mapped[dict] = mapped_column(JSON)
+    findings: Mapped[list | None] = mapped_column(JSON, nullable=True)  # claim-checker results
+    status: Mapped[ContentStatus] = mapped_column(Enum(ContentStatus, native_enum=False), default=ContentStatus.DRAFT)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    edited: Mapped[bool] = mapped_column(Boolean, default=False)  # you changed the AI's draft
+    model: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    cost_gbp: Mapped[float | None] = mapped_column(Float, nullable=True)
+    facts_used: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # exactly what the AI was told
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    product: Mapped[Product] = relationship()

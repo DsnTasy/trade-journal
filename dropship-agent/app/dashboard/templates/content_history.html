@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Versions{% endblock %}
+{% block content %}
+<p><a href="/content/{{ item.product_id }}">← {{ item.product.name }}</a></p>
+<h1>Versions: {{ 'product page' if item.kind == 'product_page' else item.angle.replace('_', ' ') ~ ' ad script' }}</h1>
+<table>
+  <thead><tr><th>Version</th><th>Status</th><th>Created</th><th>Edited</th><th>Issues</th><th>Model</th></tr></thead>
+  <tbody>{% for v in versions %}
+    <tr><td>v{{ v.version }}</td><td><span class="status a-{{ v.status.value }}">{{ v.status.value }}</span></td>
+      <td>{{ v.created_at.strftime('%d %b %H:%M') }}</td><td>{{ 'yes' if v.edited else 'no' }}</td>
+      <td>{{ (v.findings or [])|length }}</td><td>{{ v.model or '' }}</td></tr>
+  {% endfor %}</tbody>
+</table>
+{% endblock %}

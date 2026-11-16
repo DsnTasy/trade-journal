@@ -102,12 +102,30 @@ class LLMClient:
         return self._client
 
     # ---------- main entry point ----------
+    def complete_json(self, *, task: str, system: str, prompt: str, schema: dict, max_tokens: int | None = None,
+                      approved: bool = False) -> tuple[dict, LLMResult]:
+        """Like complete(), but the answer is guaranteed to be JSON matching `schema`."""
+        def parse(text: str) -> dict:
+            try:
+                data = json.loads(text)
+            except json.JSONDecodeError as exc:
+                raise LLMError(f"'{task}' didn't return valid JSON (it may have been cut off).") from exc
+            missing = [k for k in schema.get("required", []) if k not in data]
+            if missing:
+                raise LLMError(f"'{task}' answer is missing: {', '.join(missing)}.")
+            return data
+
+        result = self.complete(task=task, system=system, prompt=prompt, max_tokens=max_tokens,
+                               approved=approved, json_schema=schema, validate=parse)
+        return parse(result.text), result
+
     def complete(self, *, task: str, system: str, prompt: str, max_tokens: int | None = None,
-                 approved: bool = False) -> LLMResult:
+                 approved: bool = False, json_schema: dict | None = None, validate=None) -> LLMResult:
+        """`validate(text)` may raise to reject an answer; rejected answers are never cached."""
         model = self.settings.llm.model_for(task)
         max_tokens = max_tokens or self.settings.llm.max_tokens
-        key = {"model": model, "system": system, "prompt": prompt,
-               "max_tokens": max_tokens, "effort": self.settings.llm.effort}
+        key = {"task": task, "model": model, "system": system, "prompt": prompt,
+               "max_tokens": max_tokens, "effort": self.settings.llm.effort, "schema": json_schema}
 
         # 1. Cache
         cache_file = self._cache_path(key)
@@ -133,7 +151,8 @@ class LLMClient:
             max_tokens=max_tokens,
             system=system,
             messages=[{"role": "user", "content": prompt}],
-            output_config={"effort": self.settings.llm.effort},
+            output_config={"effort": self.settings.llm.effort,
+                           **({"format": {"type": "json_schema", "schema": json_schema}} if json_schema else {})},
             # If the model declines, the API retries on a suitable fallback model automatically.
             betas=["server-side-fallback-2026-07-01"],
             fallbacks="default",
@@ -157,6 +176,11 @@ class LLMClient:
             log_event(self.session, module="llm", action="truncated", level="WARNING",
                       message=f"'{task}' hit max_tokens ({max_tokens}); output may be cut off.",
                       dry_run=self.settings.dry_run)
+            if json_schema:  # cut-off JSON is useless: don't cache it
+                raise LLMError(f"'{task}' was cut off before finishing. Try again or raise max_tokens.")
+
+        if validate is not None:
+            validate(text)  # raises on a bad answer, before it reaches the cache
 
         # 4. Cache for next time
         self.cache_dir.mkdir(parents=True, exist_ok=True)

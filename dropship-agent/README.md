@@ -16,8 +16,8 @@ content, and shows everything in a dashboard where **you approve every real acti
 | 2 | Product research: scoring, saturation penalty, compliance flags, Opportunities page | ✅ Done |
 | 3 | Supplier finder (scores, red flags, email drafts, reply tracking) + profit calculator | ✅ Done |
 | 4 | Competitor analyser (research only: robots.txt + terms checked first) | ✅ Done |
-| 5 | Content generator + claim checker | Next |
-| 6 | Video maker | |
+| 5 | Content generator (product pages, 3 ad scripts) + UK claim checker | ✅ Done |
+| 6 | Video maker | Next |
 | 7 | Store publisher (Shopify) | |
 | 8 | Scheduler, notifications, polish | |
 
@@ -121,6 +121,32 @@ and ask for an AI summary (about 1p).
 
 If you need this data at scale, paid store-intelligence tools license it properly; tell me and we can plug one in.
 
+## Product pages and ad scripts (phase 5)
+
+Needs your Anthropic API key (see **API keys** below). Each product page costs about 5p and each set of
+3 ad scripts about 7p, all counted against your monthly cap.
+
+1. Dashboard → **Content** → pick a product (ideally with a chosen supplier, so delivery times are known).
+2. **Write product page** / **Write 3 ad scripts**. Claude is given only your facts (shown under
+   *What Claude is told*) and strict rules: no invented specs, reviews, urgency, "best" or health claims.
+   Unknown details come back as `[CHECK: ...]` placeholders for you to fill in.
+3. Every draft goes through the **claim checker**. Risky phrases are highlighted:
+   - **must fix** (red): fake reviews or ratings, fake urgency, health or safety claims without documents,
+     "no returns", delivery promises faster than your supplier, unfilled `[CHECK]` placeholders.
+     **Approve stays locked until these are gone.**
+   - **need evidence** (amber): "best" claims, "was" prices, eco claims, guarantees, absolute claims.
+4. Edit the text, **Save and re-check**, then **Approve**. Once a page and at least one ad script are approved,
+   the product moves to **content ready**.
+
+Ad angles: problem → solution, social proof *without* fake reviews (leaves a slot for a real customer clip
+if you ever have one, with permission), and demo. Each has a 3-second hook, voiceover, call to action,
+on-screen text, a shot list and TikTok / Reels / Shorts notes.
+
+`brand.yaml` sets the voice, and what you really offer (returns window, free delivery, any guarantee).
+The checker uses it: "free delivery" is only allowed if you've set `free_delivery: true`.
+
+The claim checker catches common problems; it isn't legal advice. Read everything before approving.
+
 ## Commands
 
 | Command | What it does |
@@ -133,7 +159,8 @@ If you need this data at scale, paid store-intelligence tools license it properl
 | `python run.py suppliers` | Score suppliers and show true profit with each (`--draft-emails` drafts enquiries, never sends) |
 | `python run.py profit --price 19.99 --cost 4 --shipping 3` | Quick profit check with your default assumptions |
 | `python run.py competitor https://store.co.uk` | Research a competitor (facts only; add `--terms-checked` if you've read their terms and we couldn't find them) |
-| `python run.py content / video / publish / all` | Arrive in later phases |
+| `python run.py content` | Write a page + 3 ad scripts for products with a chosen supplier (`--product NAME`, `--what page|ads|all`; paid) |
+| `python run.py video / publish / all` | Arrive in later phases |
 | `python run.py --dry-run <command>` | Force dry-run for this command, whatever config says |
 
 ## Settings you might change (`config.yaml`)
@@ -152,7 +179,7 @@ Your brand voice for product pages and ads lives in `brand.yaml`.
 
 ## API keys
 
-**Anthropic (Claude): optional in phase 2 (only for `--explain`), needed from phase 5:**
+**Anthropic (Claude): needed for content (phase 5); optional for research and competitor summaries:**
 1. Go to [console.anthropic.com](https://console.anthropic.com) and sign up.
 2. Add a payment method under **Billing** and, to be safe, set a low monthly spend limit there too.
 3. Go to **API Keys → Create Key**, and copy it.

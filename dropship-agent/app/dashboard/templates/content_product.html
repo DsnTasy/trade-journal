@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Content: {{ p.name }}{% endblock %}
+{% block content %}
+<p><a href="/content">← Content</a> · <a href="/products/{{ p.id }}">product details</a></p>
+<h1>{{ p.name }} <span class="status s-{{ p.status.value }}">{{ p.status.value.replace('_', ' ') }}</span></h1>
+{% if not p.chosen_supplier_id %}<p class="banner warn">No supplier chosen yet, so delivery times are unknown and will appear as [CHECK] placeholders. Choose a supplier first for better copy.</p>{% endif %}
+
+<div class="actions-row">
+  <button class="approve" hx-post="/content/{{ p.id }}/generate/page" hx-target="#gen-msg" hx-indicator="#gen-working">{{ 'Rewrite' if page else 'Write' }} product page (paid, about 5p)</button>
+  <button class="approve" hx-post="/content/{{ p.id }}/generate/ads" hx-target="#gen-msg" hx-indicator="#gen-working">{{ 'Rewrite' if ads else 'Write' }} 3 ad scripts (paid, about 7p)</button>
+  <span id="gen-working" class="htmx-indicator muted">Claude is writing… (up to a minute)</span>
+</div>
+<div id="gen-msg"></div>
+<details class="history"><summary>What Claude is told (the only facts it may use)</summary>
+<pre class="facts">{{ facts|tojson(indent=2) }}</pre></details>
+
+<h2>Product page</h2>
+{% if page %}
+  {% set item = page %}{% set d = page.data %}{% set fs = page.findings %}
+  {% include "_content_actions.html" %}
+  {% include "_findings.html" %}
+  <div class="preview">
+    <h3>{{ d.title|highlight(fs, 'title') }}</h3>
+    <p class="lead">{{ d.short_description|highlight(fs, 'short_description') }}</p>
+    <ul>{% for b in d.bullets %}<li>{{ b|highlight(fs, 'bullets[' ~ loop.index0 ~ ']') }}</li>{% endfor %}</ul>
+    {% for para in d.description.split('\n\n') %}<p>{{ para|highlight(fs, 'description') }}</p>{% endfor %}
+    <h4>FAQs</h4>
+    <dl>{% for f in d.faqs %}<dt>{{ f.question|highlight(fs, 'faqs[' ~ loop.index0 ~ '].question') }}</dt><dd>{{ f.answer|highlight(fs, 'faqs[' ~ loop.index0 ~ '].answer') }}</dd>{% endfor %}</dl>
+    <div class="seo"><small class="muted">Google preview</small>
+      <div class="seo-title">{{ d.seo_title|highlight(fs, 'seo_title') }} <small class="muted">({{ d.seo_title|length }}/{{ limits.seo_title }})</small></div>
+      <div class="seo-desc">{{ d.meta_description|highlight(fs, 'meta_description') }} <small class="muted">({{ d.meta_description|length }}/{{ limits.meta_description }})</small></div>
+      <small class="muted">Tags: {{ d.tags|join(', ') }}</small></div>
+  </div>
+  <details class="edit"><summary>Edit this page</summary>
+  {% set f = to_form(page) %}
+  <form hx-post="/content/item/{{ page.id }}/save" class="edit-form">
+    <label>Title <input name="title" value="{{ f.title }}"></label>
+    <label>Short description <textarea name="short_description" rows="2">{{ f.short_description }}</textarea></label>
+    <label>Bullets (one per line) <textarea name="bullets" rows="5">{{ f.bullets }}</textarea></label>
+    <label>Description (blank line between paragraphs) <textarea name="description" rows="8">{{ f.description }}</textarea></label>
+    <label>FAQs ("Q: …" then "A: …", blank line between) <textarea name="faqs" rows="8">{{ f.faqs }}</textarea></label>
+    <label>SEO title <input name="seo_title" value="{{ f.seo_title }}"></label>
+    <label>Meta description <textarea name="meta_description" rows="2">{{ f.meta_description }}</textarea></label>
+    <label>Tags (comma separated) <input name="tags" value="{{ f.tags }}"></label>
+    <button class="approve" type="submit">Save and re-check</button>
+  </form></details>
+{% else %}
+  <p class="empty">Not written yet.</p>
+{% endif %}
+
+<h2>Ad scripts <small class="muted">9:16 vertical: TikTok, Reels, Shorts</small></h2>
+{% if ads %}
+<div class="scripts">
+{% for a in ads %}
+  {% set item = a %}{% set d = a.data %}{% set fs = a.findings %}
+  <div class="script">
+    <h3>{{ a.angle.replace('_', ' ')|capitalize }}</h3>
+    <p class="muted"><small>{{ angles[a.angle] }}</small></p>
+    {% include "_content_actions.html" %}
+    {% include "_findings.html" %}
+    <p><b>Hook (0-3s):</b> {{ d.hook|highlight(fs, 'hook') }}</p>
+    <p><b>Voiceover:</b> {{ d.body|highlight(fs, 'body') }}</p>
+    <p><b>Call to action:</b> {{ d.cta|highlight(fs, 'cta') }}</p>
+    <p><b>On-screen text:</b></p><ol>{% for t in d.on_screen_text %}<li>{{ t|highlight(fs, 'on_screen_text[' ~ loop.index0 ~ ']') }}</li>{% endfor %}</ol>
+    <p><b>Shots:</b></p><ol>{% for t in d.shots %}<li>{{ t|highlight(fs, 'shots[' ~ loop.index0 ~ ']') }}</li>{% endfor %}</ol>
+    <p class="muted"><small>About {{ d.duration_seconds }}s · TikTok: {{ d.platform_notes.tiktok }} · Reels: {{ d.platform_notes.reels }} · Shorts: {{ d.platform_notes.shorts }}</small></p>
+    <details class="edit"><summary>Edit this script</summary>
+    {% set f = to_form(a) %}
+    <form hx-post="/content/item/{{ a.id }}/save" class="edit-form">
+      <label>Hook <input name="hook" value="{{ f.hook }}"></label>
+      <label>Voiceover <textarea name="body" rows="5">{{ f.body }}</textarea></label>
+      <label>Call to action <input name="cta" value="{{ f.cta }}"></label>
+      <label>On-screen text (one per line) <textarea name="on_screen_text" rows="4">{{ f.on_screen_text }}</textarea></label>
+      <label>Shots (one per line) <textarea name="shots" rows="5">{{ f.shots }}</textarea></label>
+      <label>Length (seconds) <input name="duration_seconds" value="{{ f.duration_seconds }}"></label>
+      <label>TikTok notes <input name="tiktok" value="{{ f.tiktok }}"></label>
+      <label>Reels notes <input name="reels" value="{{ f.reels }}"></label>
+      <label>Shorts notes <input name="shorts" value="{{ f.shorts }}"></label>
+      <button class="approve" type="submit">Save and re-check</button>
+    </form></details>
+  </div>
+{% endfor %}
+</div>
+{% else %}
+  <p class="empty">Not written yet.</p>
+{% endif %}
+{% endblock %}

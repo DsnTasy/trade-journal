@@ -1,0 +1,18 @@
+{# expects `item` #}
+{% set fs = item.findings or [] %}
+{% set high = fs|selectattr('severity', 'equalto', 'high')|list %}
+{% if fs %}
+<div class="findings">
+  <strong>Claim check:</strong>
+  {% if high %}<span class="tag bad">{{ high|length }} must fix</span>{% endif %}
+  {% set med = fs|selectattr('severity', 'equalto', 'medium')|list %}{% if med %}<span class="tag warn">{{ med|length }} need evidence</span>{% endif %}
+  {% set low = fs|selectattr('severity', 'equalto', 'low')|list %}{% if low %}<span class="tag">{{ low|length }} minor</span>{% endif %}
+  <ul>
+  {% for f in fs %}
+    <li class="sev-{{ f.severity }}"><b>{{ f.severity }}</b> · <code>{{ f.field }}</code> · “{{ f.match }}”: {{ f.message }} <em>{{ f.fix }}</em></li>
+  {% endfor %}
+  </ul>
+</div>
+{% else %}
+<div class="findings ok">Claim check: no risky claims found. Still read it yourself: the checker catches common problems, not everything.</div>
+{% endif %}

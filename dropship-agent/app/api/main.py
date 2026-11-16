@@ -16,7 +16,7 @@ from sqlalchemy import func, select
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
-from app.api import competitor_routes, supplier_routes
+from app.api import competitor_routes, content_routes, supplier_routes
 from app.core import approvals
 from app.core.config import Settings, get_settings
 from app.core.cost_tracker import CostTracker
@@ -45,12 +45,14 @@ NAV = [
     ("Suppliers", "/suppliers", None),
     ("Profit calculator", "/profit", None),
     ("Competitor reports", "/competitors", None),
-    ("Content & videos", None, 5),
+    ("Content", "/content", None),
+    ("Videos", None, 6),
 ]
 
 
-def create_app(settings: Settings | None = None, engine: Engine | None = None, fetcher_factory=None) -> FastAPI:
-    """`fetcher_factory` lets tests swap in a fake website fetcher."""
+def create_app(settings: Settings | None = None, engine: Engine | None = None, fetcher_factory=None,
+               llm_factory=None) -> FastAPI:
+    """`fetcher_factory` / `llm_factory` let tests swap in a fake website fetcher / fake Claude."""
     settings = settings or get_settings()
     engine = engine or make_engine(settings.database_url)
     init_db(engine)
@@ -167,6 +169,7 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None, f
 
     supplier_routes.register(app, templates, settings, get_session, render, require_htmx)
     competitor_routes.register(app, templates, settings, get_session, render, require_htmx, fetcher_factory)
+    content_routes.register(app, templates, settings, get_session, render, require_htmx, llm_factory)
 
     # ---------------- JSON API ----------------
     @app.get("/api/status")

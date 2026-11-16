@@ -232,9 +232,50 @@ def competitor(
 
 
 @cli.command()
-def content():
-    """Write product pages and ad scripts (phase 5)."""
-    _not_yet("content", 5)
+def content(
+    product: str = typer.Option(None, "--product", help="Product name. Default: every product with a chosen supplier."),
+    what: str = typer.Option("all", "--what", help="page, ads or all"),
+):
+    """Write product pages and 3 ad scripts with Claude, then check every claim (paid: about 5-7p each)."""
+    from sqlalchemy import select
+
+    from app.core.models import ProductStatus
+    from app.modules.content_generator import claim_checker, service
+
+    if what not in ("page", "ads", "all"):
+        typer.echo("--what must be page, ads or all")
+        raise typer.Exit(1)
+    settings, session = _session()
+    products = list(session.scalars(select(Product)))
+    if product:
+        products = [p for p in products if p.name.lower() == product.lower()]
+        if not products:
+            typer.echo(f"No product called '{product}'.")
+            raise typer.Exit(1)
+    else:
+        products = [p for p in products if p.status in (ProductStatus.SUPPLIER_CHOSEN, ProductStatus.SAMPLE_ORDERED)]
+        if not products:
+            typer.echo("No products with a chosen supplier yet. Choose one in the dashboard, or use --product NAME.")
+            raise typer.Exit(1)
+
+    for p in products:
+        typer.echo(f"{p.name}")
+        try:
+            items = []
+            if what in ("page", "all"):
+                items.append(service.generate_page(session, settings, p))
+            if what in ("ads", "all"):
+                items += service.generate_ads(session, settings, p)
+        except RuntimeError as exc:
+            typer.echo(f"  Not generated: {exc}")
+            continue
+        for item in items:
+            label = "product page" if item.kind == "product_page" else f"{item.angle.replace('_', ' ')} ad"
+            high = claim_checker.blocking(item.findings or [])
+            typer.echo(f"  {label}: {len(item.findings or [])} issue(s), {len(high)} must fix")
+            for f in high[:3]:
+                typer.echo(f"     ! \"{f['match']}\" ({f['field']}): {f['message']}")
+    typer.echo("\nReview, edit and approve: python run.py dashboard → Content")
 
 
 @cli.command()

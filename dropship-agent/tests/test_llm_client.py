@@ -83,3 +83,25 @@ def test_uses_task_model_override(session, settings):
     fake = FakeAnthropic()
     LLMClient(settings, session, client=fake).complete(task="scoring", system="s", prompt="p", max_tokens=10)
     assert fake.calls[0]["model"] == "test-model"
+
+
+def test_complete_json_sends_schema_and_parses(session, settings):
+    schema = {"type": "object", "properties": {"title": {"type": "string"}}, "required": ["title"],
+              "additionalProperties": False}
+    fake = FakeAnthropic(text='{"title": "Pet roller"}')
+    data, result = LLMClient(settings, session, client=fake).complete_json(
+        task="t", system="s", prompt="p", schema=schema, max_tokens=100)
+    assert data == {"title": "Pet roller"}
+    assert fake.calls[0]["output_config"]["format"] == {"type": "json_schema", "schema": schema}
+
+
+def test_complete_json_missing_field_or_cut_off(session, settings):
+    from app.core.llm_client import LLMError
+    schema = {"type": "object", "required": ["title"]}
+    with pytest.raises(LLMError, match="missing"):
+        LLMClient(settings, session, client=FakeAnthropic(text="{}")).complete_json(
+            task="a", system="s", prompt="p", schema=schema, max_tokens=10)
+    cut = FakeAnthropic(text='{"title": "Pet', stop_reason="max_tokens")
+    with pytest.raises(LLMError, match="cut off"):
+        LLMClient(settings, session, client=cut).complete_json(task="b", system="s", prompt="p", schema=schema,
+                                                                max_tokens=10)

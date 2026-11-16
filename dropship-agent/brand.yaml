@@ -9,5 +9,7 @@ avoid:
   - "health or medical claims"
   - "invented reviews or testimonials"
 promises:
-  returns_days: 14
+  returns_days: 14              # your returns window (14 days is the legal minimum for online orders)
+  free_delivery: false          # set true ONLY if you really offer free delivery
+  guarantee: ""                 # e.g. "30-day money-back guarantee", ONLY if you really offer it
   delivery_estimate: "Shown per product from the supplier's real delivery times"

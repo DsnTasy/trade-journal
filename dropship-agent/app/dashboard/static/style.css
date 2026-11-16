@@ -119,3 +119,36 @@ form.inline { display: inline-flex; gap: 8px; align-items: center; }
 .manual-grid label { font-size: 13px; font-weight: 500; }
 .manual-grid .wide { grid-column: 1 / -1; }
 textarea.full { margin-bottom: 8px; }
+
+/* Phase 5: content */
+.findings { background: #fffaf0; border: 1px solid #f3e2bf; border-radius: 6px; padding: 10px 12px; margin: 10px 0; font-size: 13px; }
+.findings.ok { background: #f2faf5; border-color: #cfe9d9; color: var(--ok); }
+.findings ul { margin: 6px 0 0; padding-left: 18px; }
+.findings li.sev-high b { color: var(--bad); }
+.findings li.sev-medium b { color: var(--warn); }
+.findings em { color: var(--muted); }
+.tag:not(.ok):not(.bad):not(.warn) { background: var(--line); }
+mark.sev-high { background: #fcd4d4; }
+mark.sev-medium { background: #fdeac4; }
+mark.sev-low { background: #e8eefc; }
+.preview { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px 20px; }
+.preview h3 { margin-top: 0; font-size: 20px; }
+.preview .lead { font-size: 16px; }
+.preview dt { font-weight: 600; margin-top: 8px; }
+.preview dd { margin-left: 0; }
+.seo { border-top: 1px dashed var(--line); margin-top: 12px; padding-top: 10px; }
+.seo-title { color: #1a0dab; font-size: 17px; }
+.seo-desc { color: #4d5156; font-size: 14px; }
+.scripts { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
+.script { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+.script h3 { margin: 0; }
+details.edit { margin-top: 12px; }
+details.edit summary { cursor: pointer; color: var(--accent); }
+.edit-form { display: grid; gap: 8px; margin-top: 8px; }
+.edit-form label { font-size: 13px; font-weight: 500; }
+.edit-form input, .edit-form textarea { width: 100%; font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 5px; }
+pre.facts { background: #1d2330; color: #e6e9ef; padding: 12px; border-radius: 6px; font-size: 12px; overflow-x: auto; white-space: pre-wrap; }
+button[disabled] { opacity: 0.45; cursor: not-allowed; }
+.a-draft { background: #fdf3e1; color: var(--warn); }
+.a-superseded { background: var(--line); color: var(--muted); }
+.s-content_ready { background: #e3f4ea; color: var(--ok); }
