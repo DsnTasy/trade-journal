@@ -103,3 +103,19 @@ table.money tr.total td { font-weight: 700; font-size: 16px; }
 .saved { color: var(--ok); margin-left: 8px; }
 @media (max-width: 800px) { .calc { grid-template-columns: 1fr; } }
 .tag { white-space: nowrap; }
+
+/* Phase 4: competitors */
+.add-competitor { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; margin: 16px 0 24px; display: grid; gap: 10px; }
+.add-competitor input[name=url], .manual-grid input, .manual-grid textarea, textarea.full { width: 100%; font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 5px; }
+label.check { font-size: 13px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+.htmx-indicator { display: none; }
+.htmx-request .htmx-indicator, .htmx-request.htmx-indicator { display: inline; }
+.c-allowed, .c-manual { background: #e3f4ea; color: var(--ok); }
+.c-forbidden, .c-error { background: #fde8e8; color: var(--bad); }
+.c-needs_terms_check { background: #fdf3e1; color: var(--warn); }
+.actions-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 16px 0; }
+form.inline { display: inline-flex; gap: 8px; align-items: center; }
+.manual-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px 16px; }
+.manual-grid label { font-size: 13px; font-weight: 500; }
+.manual-grid .wide { grid-column: 1 / -1; }
+textarea.full { margin-bottom: 8px; }

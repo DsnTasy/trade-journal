@@ -205,6 +205,33 @@ def profit(
 
 
 @cli.command()
+def competitor(
+    url: str = typer.Argument(..., help="The competitor store's address, e.g. https://example-store.co.uk"),
+    terms_checked: bool = typer.Option(False, "--terms-checked",
+                                       help="You've read their terms and they don't forbid automated access."),
+):
+    """Research a competitor store (facts only; checks robots.txt and their terms first)."""
+    from app.modules.competitor_analyzer import CompetitorError, analyse
+
+    settings, session = _session()
+    try:
+        r = analyse(session, settings, url, terms_checked_by_you=terms_checked)
+    except CompetitorError as exc:
+        typer.echo(f"Can't analyse: {exc}")
+        raise typer.Exit(1) from exc
+    typer.echo(f"{r.domain}: {r.status}")
+    if r.status_reason:
+        typer.echo(f"  {r.status_reason}")
+    ins = r.insights or {}
+    for title, key in (("Does well", "does_well"), ("Gaps you could fill", "gaps"), ("Vs your products", "vs_your_products")):
+        if ins.get(key):
+            typer.echo(f"\n{title}:")
+            for line in ins[key]:
+                typer.echo(f"  - {line}")
+    typer.echo("\nFull report, manual facts and review themes: python run.py dashboard → Competitor reports")
+
+
+@cli.command()
 def content():
     """Write product pages and ad scripts (phase 5)."""
     _not_yet("content", 5)

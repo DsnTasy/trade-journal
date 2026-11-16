@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}{{ r.domain }}{% endblock %}
+{% block content %}
+<p><a href="/competitors">← Competitor reports</a></p>
+<h1>{{ r.domain }} <span class="status c-{{ r.status }}">{{ status_text.get(r.status, r.status) }}</span></h1>
+{% if r.status_reason %}<p class="banner {{ 'danger' if r.status in ('forbidden', 'error') else 'warn' if r.status == 'needs_terms_check' else 'dry' }}">{{ r.status_reason }}</p>{% endif %}
+{% set ins = r.insights or {} %}
+
+{% if r.summary %}
+<h2>Summary</h2>
+<p class="summary">{{ r.summary }}</p>
+<p class="muted"><small>Written by Claude from the facts below only, in its own words.</small></p>
+{% endif %}
+
+<div class="two-col">
+  <div><h2>What they do well</h2>
+    <ul class="reasons pro">{% for x in ins.does_well or [] %}<li>{{ x }}</li>{% else %}<li class="muted">Not enough facts yet.</li>{% endfor %}</ul></div>
+  <div><h2>Gaps you could fill</h2>
+    <ul class="reasons con">{% for x in ins.gaps or [] %}<li>{{ x }}</li>{% else %}<li class="muted">Not enough facts yet.</li>{% endfor %}</ul></div>
+</div>
+{% if ins.vs_your_products %}
+<h2>Compared with your products</h2>
+<ul>{% for x in ins.vs_your_products %}<li>{{ x }}</li>{% endfor %}</ul>
+{% endif %}
+
+<div class="actions-row">
+  <button class="approve small" hx-post="/competitors/{{ r.id }}/summary" hx-target="#ai-msg" hx-indicator="#ai-working">Write AI summary (paid, about 1p)</button>
+  <span id="ai-working" class="htmx-indicator muted">Writing…</span><span id="ai-msg"></span>
+  <form hx-post="/competitors/{{ r.id }}/rerun" class="inline">
+    {% if r.status == 'needs_terms_check' %}<label class="check"><input type="checkbox" name="terms_checked" value="yes"> I've checked their terms</label>{% endif %}
+    <button class="reject small" type="submit">Check again</button></form>
+  <button class="reject small" hx-post="/competitors/{{ r.id }}/delete" hx-confirm="Delete this report?">Delete</button>
+</div>
+
+<h2>Facts</h2>
+<table>
+  <thead><tr><th>Fact</th><th>Value</th><th>Where it came from</th></tr></thead>
+  <tbody>
+  {% for key, (label, kind) in manual_fields.items() %}
+    {% if facts[key] is defined %}
+    <tr><td>{{ label }}</td>
+      <td>{% if key in bool_fields %}{{ 'yes' if facts[key] else 'no' }}{% elif key == 'discounted_share' %}{{ '%.0f'|format(facts[key] * 100) }}%{% else %}{{ facts[key]|num }}{% endif %}</td>
+      <td>{{ 'entered by you' if (r.manual_facts or {})[key] is defined else 'their public pages' }}</td></tr>
+    {% endif %}
+  {% endfor %}
+  {% if facts.avg_discount_pct is defined %}<tr><td>Average discount shown</td><td>{{ facts.avg_discount_pct }}%</td><td>their product feed</td></tr>{% endif %}
+  {% if facts.new_last_90_days is defined %}<tr><td>Products added in last 90 days</td><td>{{ facts.new_last_90_days }}</td><td>their product feed</td></tr>{% endif %}
+  {% if facts.currency is defined %}<tr><td>Currency</td><td>{{ facts.currency }}</td><td>their homepage</td></tr>{% endif %}
+  {% if r.platform %}<tr><td>Platform</td><td>{{ r.platform }}</td><td>detected</td></tr>{% endif %}
+  </tbody>
+</table>
+{% if facts.product_types %}
+<p class="muted">Product types: {% for t, n in facts.product_types.items() %}{{ t }} ({{ n }}){{ ', ' if not loop.last }}{% endfor %}</p>
+{% endif %}
+{% if facts.bestsellers %}
+<h3>Best-seller order</h3>
+<p class="muted"><small>As the store's own "best selling" sort shows it (store-controlled; may not reflect real sales). Product links only, no content stored.</small></p>
+<ol>{% for b in facts.bestsellers %}<li><a href="{{ r.url }}/products/{{ b.handle }}" target="_blank" rel="noopener noreferrer">{{ b.handle.replace('-', ' ') }}</a>{% if b.price is not none %} · {{ b.price|gbp }}{% endif %}</li>{% endfor %}</ol>
+{% endif %}
+
+<h2>Add facts by hand</h2>
+<p class="muted">Browse their site yourself and fill in what you see. Your entries override automatic ones. Leave blank if unknown.</p>
+<form class="manual-grid" hx-post="/competitors/{{ r.id }}/manual" hx-target="#manual-msg">
+  {% for key, (label, kind) in manual_fields.items() %}
+    {% set v = (r.manual_facts or {}).get(key) %}
+    <label>{{ label }}<input name="{{ key }}" value="{{ ('yes' if v else 'no') if key in bool_fields and v is not none else (v if v is not none else '') }}"></label>
+  {% endfor %}
+  <label class="wide">Your notes: positioning, ad angles you've seen (in your own words)
+    <textarea name="notes" rows="3">{{ r.notes or '' }}</textarea></label>
+  <div><button class="approve" type="submit">Save facts</button> <span id="manual-msg"></span></div>
+</form>
+
+<h2>Review themes</h2>
+<p class="muted">Paste some of their customer reviews (one per line, or separated by blank lines). We count the themes and
+<strong>don't keep the text</strong>.</p>
+{% if r.review_themes %}
+<table>
+  <thead><tr><th>Theme</th><th>Positive mentions</th><th>Negative mentions</th></tr></thead>
+  <tbody>{% for t, c in r.review_themes.themes.items() %}<tr><td>{{ t|capitalize }}</td><td>{{ c.positive }}</td><td>{{ c.negative }}</td></tr>{% endfor %}</tbody>
+</table>
+<p class="muted"><small>{{ r.review_themes.reviews_analysed }} reviews analysed, {{ r.review_themes.negative_reviews }} mostly negative. Simple keyword rules: a rough guide.</small></p>
+{% endif %}
+<form hx-post="/competitors/{{ r.id }}/reviews">
+  <textarea name="reviews" rows="6" class="full" placeholder="Paste reviews here"></textarea>
+  <button class="approve small" type="submit">Count themes</button>
+</form>
+
+{% if r.sources %}
+<details class="history"><summary>Pages we checked ({{ r.sources|length }})</summary>
+<table><thead><tr><th>URL</th><th>Status</th><th>When (UTC)</th></tr></thead><tbody>
+{% for s in r.sources %}<tr><td>{{ s.url }}</td><td>{{ s.status }}{{ ' (cached)' if s.cached }}</td><td>{{ s.at[:16].replace('T', ' ') }}</td></tr>{% endfor %}
+</tbody></table></details>
+{% endif %}
+{% endblock %}

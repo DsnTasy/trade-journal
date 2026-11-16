@@ -7,6 +7,7 @@ dry_run: true
 database_url: "sqlite:///data/dropship.db"
 log_file: "logs/app.log"
 llm_cache_dir: "data/llm_cache"
+http_cache_dir: "data/http_cache"
 
 budget:
   monthly_cap_gbp: 25.00        # Hard cap for ALL paid API calls per calendar month.
@@ -86,3 +87,11 @@ suppliers:
   slow_shipping_days: 15        # 15+ days gets a red flag
   red_flag_penalty: 5           # points removed per red flag
   top_n: 3                      # how many suppliers to show per product
+
+competitors:
+  # Research only: we check robots.txt and their terms first, and stop if automated access is forbidden.
+  user_agent: "dropship-agent-research/0.4 (personal market research; low volume; respects robots.txt)"
+  request_delay_seconds: 3      # wait between requests to the same site
+  cache_hours: 24               # re-use downloaded pages for a day instead of asking again
+  max_product_pages: 4          # read at most 4 x 250 products
+  timeout_seconds: 20

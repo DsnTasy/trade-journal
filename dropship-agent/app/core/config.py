@@ -119,6 +119,15 @@ class SupplierConfig(BaseModel):
     top_n: int = Field(3, gt=0)
 
 
+class CompetitorConfig(BaseModel):
+    # Identify ourselves honestly to the sites we visit.
+    user_agent: str = "dropship-agent-research/0.4 (personal market research; low volume; respects robots.txt)"
+    request_delay_seconds: float = Field(3.0, ge=0, description="Wait between requests to the same site.")
+    cache_hours: float = Field(24, ge=0, description="Re-use a downloaded page for this long.")
+    max_product_pages: int = Field(4, ge=1, le=20, description="Pages of 250 products to read at most.")
+    timeout_seconds: float = Field(20, gt=0)
+
+
 class StoreConfig(BaseModel):
     platform: str = "shopify"  # "shopify" (chosen) or "custom"
 
@@ -129,12 +138,14 @@ class Settings(BaseModel):
     database_url: str = "sqlite:///data/dropship.db"
     log_file: str = "logs/app.log"
     llm_cache_dir: str = "data/llm_cache"
+    http_cache_dir: str = "data/http_cache"
     budget: BudgetConfig = Field(default_factory=BudgetConfig)
     llm: LLMConfig = Field(default_factory=LLMConfig)
     business: BusinessConfig = Field(default_factory=BusinessConfig)
     research: ResearchConfig = Field(default_factory=ResearchConfig)
     profit: ProfitConfig = Field(default_factory=ProfitConfig)
     suppliers: SupplierConfig = Field(default_factory=SupplierConfig)
+    competitors: CompetitorConfig = Field(default_factory=CompetitorConfig)
     store: StoreConfig = Field(default_factory=StoreConfig)
 
     # Secrets: filled from environment variables, never from config.yaml.

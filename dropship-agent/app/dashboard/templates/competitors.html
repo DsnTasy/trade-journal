@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Competitor reports{% endblock %}
+{% block content %}
+<h1>Competitor reports</h1>
+<p class="banner warn">Research only. We store facts (prices, counts, policies) and our own summaries, never their
+images, descriptions or site code. We check their robots.txt and terms first and stop if automated access isn't allowed.</p>
+
+<form class="add-competitor" hx-post="/competitors" hx-indicator="#working">
+  <label>Competitor store address
+    <input name="url" placeholder="https://example-store.co.uk" required></label>
+  <label class="check"><input type="checkbox" name="terms_checked" value="yes">
+    I've read their terms and they don't forbid automated access (only needed if we can't find their terms)</label>
+  <button class="approve" type="submit">Analyse</button>
+  <span id="working" class="htmx-indicator muted">Checking their robots.txt and terms, then collecting politely (a few seconds between requests)…</span>
+</form>
+
+{% if reports %}
+<table>
+  <thead><tr><th>Store</th><th>Status</th><th>Typical price</th><th>Products</th><th>Updated</th></tr></thead>
+  <tbody>
+  {% for r in reports %}{% set f = r.facts %}
+    <tr><td><a href="/competitors/{{ r.id }}"><strong>{{ r.domain }}</strong></a></td>
+      <td><span class="status c-{{ r.status }}">{{ status_text.get(r.status, r.status) }}</span></td>
+      <td>{{ f.price_median|gbp if f.price_median is defined else '–' }}</td>
+      <td>{{ f.product_count if f.product_count is defined else '–' }}</td>
+      <td>{{ r.updated_at.strftime('%d %b %Y') }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty">No competitors yet. Paste a store address above.</p>
+{% endif %}
+{% endblock %}

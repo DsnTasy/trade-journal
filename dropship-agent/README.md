@@ -15,8 +15,8 @@ content, and shows everything in a dashboard where **you approve every real acti
 | 1 | Skeleton: config, database, logging, cost cap, approvals, dashboard | ✅ Done |
 | 2 | Product research: scoring, saturation penalty, compliance flags, Opportunities page | ✅ Done |
 | 3 | Supplier finder (scores, red flags, email drafts, reply tracking) + profit calculator | ✅ Done |
-| 4 | Competitor analyser (research only) | Next |
-| 5 | Content generator + claim checker | |
+| 4 | Competitor analyser (research only: robots.txt + terms checked first) | ✅ Done |
+| 5 | Content generator + claim checker | Next |
 | 6 | Video maker | |
 | 7 | Store publisher (Shopify) | |
 | 8 | Scheduler, notifications, polish | |
@@ -98,6 +98,29 @@ are shown last. Anything that might need safety rules is tagged **compliance rev
 **The ad cost per sale (CPA) is the biggest guess in the whole sum.** The default is £10; set your own once
 you've run ads. Supplier scores are a filter, not a verdict: **always order a sample first.**
 
+## Competitor research (phase 4)
+
+Dashboard → **Competitor reports** → paste a store's address → **Analyse** (or `python run.py competitor <url>`).
+
+What happens, in order:
+1. It reads their **robots.txt**. If it asks tools like ours to stay out, it stops.
+2. It reads their **terms of service**. If they forbid automated collection ("scrape", "crawl", "spider"...),
+   it stops and downloads nothing else. **Many Shopify stores use Shopify's standard terms, which say exactly
+   this, so expect "not allowed" often. That's the system respecting their rules, not a bug.**
+   If it can't find their terms, it asks you to read them first.
+3. Only if both allow it, it politely reads their public product feed and delivery/returns pages, waiting
+   3 seconds between requests and identifying itself honestly.
+
+It stores **facts only** (price range, product count, discounts, delivery and return promises, best-seller order)
+and our own summaries, never their images, descriptions or code.
+
+When automatic collection isn't allowed, use **Add facts by hand**: browse their site yourself and fill in what
+you see. Either way you get a report of **what they do well**, **gaps you could fill**, and how their prices
+compare with yours. You can also paste some of their reviews to count complaint themes (the text isn't kept),
+and ask for an AI summary (about 1p).
+
+If you need this data at scale, paid store-intelligence tools license it properly; tell me and we can plug one in.
+
 ## Commands
 
 | Command | What it does |
@@ -109,6 +132,7 @@ you've run ads. Supplier scores are a filter, not a verdict: **always order a sa
 | `python run.py research` | Score and rank your product ideas (`--explain 3` adds Claude summaries for the top 3: paid, a few pence) |
 | `python run.py suppliers` | Score suppliers and show true profit with each (`--draft-emails` drafts enquiries, never sends) |
 | `python run.py profit --price 19.99 --cost 4 --shipping 3` | Quick profit check with your default assumptions |
+| `python run.py competitor https://store.co.uk` | Research a competitor (facts only; add `--terms-checked` if you've read their terms and we couldn't find them) |
 | `python run.py content / video / publish / all` | Arrive in later phases |
 | `python run.py --dry-run <command>` | Force dry-run for this command, whatever config says |
 
@@ -122,6 +146,7 @@ you've run ads. Supplier scores are a filter, not a verdict: **always order a sa
 - `business.vat_registered`: set `true` once you register for VAT.
 - `profit`: default costs and assumptions (card fees, Shopify fee, refund rate, ad cost per sale...). **Check these against your Shopify plan.**
 - `suppliers`: scoring weights, the 7-day delivery target and the 15-day slow-shipping flag.
+- `competitors`: how politely we fetch (user agent, seconds between requests, cache time).
 
 Your brand voice for product pages and ads lives in `brand.yaml`.
 

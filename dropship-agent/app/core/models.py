@@ -214,3 +214,33 @@ class SupplierMessage(Base):
     replied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     supplier: Mapped[Supplier] = relationship(back_populates="messages")
+
+
+class CompetitorReport(Base):
+    """Research-only report on a competitor store. Stores FACTS and our own summaries only:
+    never their images, product descriptions or site code."""
+
+    __tablename__ = "competitor_reports"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    url: Mapped[str] = mapped_column(String(300))
+    domain: Mapped[str] = mapped_column(String(200))
+    # allowed = collected automatically; forbidden = their robots.txt/terms say no;
+    # needs_terms_check = couldn't find terms; manual = facts entered by you; error = couldn't reach it
+    status: Mapped[str] = mapped_column(String(30))
+    status_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    platform: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    auto_facts: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    manual_facts: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    review_themes: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    insights: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)  # AI summary, our own words
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)  # your notes: positioning, ad angles
+    sources: Mapped[list | None] = mapped_column(JSON, nullable=True)  # every URL we fetched, when
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    @property
+    def facts(self) -> dict:
+        """Your manual entries win over automatic ones."""
+        return {**(self.auto_facts or {}), **{k: v for k, v in (self.manual_facts or {}).items() if v is not None}}

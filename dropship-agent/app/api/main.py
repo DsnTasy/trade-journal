@@ -16,7 +16,7 @@ from sqlalchemy import func, select
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
-from app.api import supplier_routes
+from app.api import competitor_routes, supplier_routes
 from app.core import approvals
 from app.core.config import Settings, get_settings
 from app.core.cost_tracker import CostTracker
@@ -44,12 +44,13 @@ NAV = [
     ("Logs & costs", "/logs", None),
     ("Suppliers", "/suppliers", None),
     ("Profit calculator", "/profit", None),
-    ("Competitor reports", None, 4),
+    ("Competitor reports", "/competitors", None),
     ("Content & videos", None, 5),
 ]
 
 
-def create_app(settings: Settings | None = None, engine: Engine | None = None) -> FastAPI:
+def create_app(settings: Settings | None = None, engine: Engine | None = None, fetcher_factory=None) -> FastAPI:
+    """`fetcher_factory` lets tests swap in a fake website fetcher."""
     settings = settings or get_settings()
     engine = engine or make_engine(settings.database_url)
     init_db(engine)
@@ -165,6 +166,7 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
         return render(request, "logs.html", session, entries=entries, costs=costs)
 
     supplier_routes.register(app, templates, settings, get_session, render, require_htmx)
+    competitor_routes.register(app, templates, settings, get_session, render, require_htmx, fetcher_factory)
 
     # ---------------- JSON API ----------------
     @app.get("/api/status")
