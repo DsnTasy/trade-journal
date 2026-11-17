@@ -17,8 +17,8 @@ content, and shows everything in a dashboard where **you approve every real acti
 | 3 | Supplier finder (scores, red flags, email drafts, reply tracking) + profit calculator | ✅ Done |
 | 4 | Competitor analyser (research only: robots.txt + terms checked first) | ✅ Done |
 | 5 | Content generator (product pages, 3 ad scripts) + UK claim checker | ✅ Done |
-| 6 | Video maker | Next |
-| 7 | Store publisher (Shopify) | |
+| 6 | Video maker (9:16 MP4s with captions, music, voiceover, end card) | ✅ Done |
+| 7 | Store publisher (Shopify) | Next |
 | 8 | Scheduler, notifications, polish | |
 
 ---
@@ -147,6 +147,37 @@ The checker uses it: "free delivery" is only allowed if you've set `free_deliver
 
 The claim checker catches common problems; it isn't legal advice. Read everything before approving.
 
+## Videos (phase 6)
+
+Turns **approved** ad scripts into 1080×1920 (9:16) MP4s for TikTok, Reels and Shorts. Free: it uses ffmpeg
+on your computer.
+
+**Install ffmpeg once:**
+- **Windows:** open PowerShell and run `winget install Gyan.FFmpeg`, then close and reopen your terminal.
+- **Mac:** install [Homebrew](https://brew.sh), then run `brew install ffmpeg`.
+- Check it worked: `ffmpeg -version`.
+
+**Then:**
+1. Film a few short clips of the product (or get permission from the supplier to use theirs). 3-6 different
+   shots work best. Phone footage is fine: landscape or portrait, it's cropped to fill the frame.
+2. Put them in `media/<product-folder>/` (the **Videos** page lists the folder names). Optional:
+   royalty-free music in `media/music/`, and your own voiceover saved as `media/<product-folder>/voice-demo.mp3`
+   (or `voice-problem_solution.mp3`, `voice-social_proof.mp3`).
+3. Dashboard → **Videos** → record each file's **licence** (filmed by you / supplier permission / royalty-free,
+   plus a note of where the proof is). **Files without a licence are never used.**
+4. Click **Render** next to an approved script (about 10-20 seconds each), watch it, then **Approve** or **Reject**.
+   Or run `python run.py video` to render all approved scripts at once.
+
+Each video gets: shots cut every few seconds, the hook as a big caption in the first 3 seconds, the on-screen
+lines and call to action as captions, optional music (quiet, fades out) and voiceover, and an end card with
+your store name. Videos are saved in `output/videos/`.
+
+Never faked: no invented customers, unboxings or testimonials. Script lines that were placeholders
+(like a "real customer clip" you don't have) are left out, and you're told.
+
+Paid AI voices or AI video can be plugged in later (one small class each, with cost tracking and approval).
+Tell me which provider you'd like once you have an account, and I'll add and test it.
+
 ## Commands
 
 | Command | What it does |
@@ -160,7 +191,8 @@ The claim checker catches common problems; it isn't legal advice. Read everythin
 | `python run.py profit --price 19.99 --cost 4 --shipping 3` | Quick profit check with your default assumptions |
 | `python run.py competitor https://store.co.uk` | Research a competitor (facts only; add `--terms-checked` if you've read their terms and we couldn't find them) |
 | `python run.py content` | Write a page + 3 ad scripts for products with a chosen supplier (`--product NAME`, `--what page|ads|all`; paid) |
-| `python run.py video / publish / all` | Arrive in later phases |
+| `python run.py video` | Render all approved ad scripts into MP4s (`--product NAME`, `--music track.mp3`, `--voice recorded`) |
+| `python run.py publish / all` | Arrive in later phases |
 | `python run.py --dry-run <command>` | Force dry-run for this command, whatever config says |
 
 ## Settings you might change (`config.yaml`)
@@ -174,6 +206,7 @@ The claim checker catches common problems; it isn't legal advice. Read everythin
 - `profit`: default costs and assumptions (card fees, Shopify fee, refund rate, ad cost per sale...). **Check these against your Shopify plan.**
 - `suppliers`: scoring weights, the 7-day delivery target and the 15-day slow-shipping flag.
 - `competitors`: how politely we fetch (user agent, seconds between requests, cache time).
+- `video`: size, shot length, caption font and size, brand colours, music volume, and the ffmpeg location.
 
 Your brand voice for product pages and ads lives in `brand.yaml`.
 
@@ -217,6 +250,7 @@ dropship-agent/
   app/dashboard/   HTML templates and styles
   app/modules/     one folder per job (added phase by phase)
   tests/           automated tests
+  media/           your footage, music and voiceovers (not committed)
   output/          videos and reports (not committed)
   config.yaml      settings (safe to commit)
   brand.yaml       brand voice

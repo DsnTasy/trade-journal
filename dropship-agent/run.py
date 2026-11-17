@@ -279,9 +279,51 @@ def content(
 
 
 @cli.command()
-def video():
-    """Render video ads (phase 6)."""
-    _not_yet("video", 6)
+def video(
+    product: str = typer.Option(None, "--product", help="Only this product."),
+    music: str = typer.Option(None, "--music", help="Music file name in media/music/ (must have a licence recorded)."),
+    voice_name: str = typer.Option(None, "--voice", help="none (captions only) or recorded (your voice-<angle>.mp3)."),
+):
+    """Render approved ad scripts into 9:16 MP4s (free, uses ffmpeg). Licences are recorded on the Videos page."""
+    from sqlalchemy import select
+
+    from app.core.models import ContentItem, ContentStatus, MediaAsset, Video
+    from app.modules.video_maker import media, service
+
+    settings, session = _session()
+    root = settings.path(settings.video.media_dir)
+    scan = media.scan(session, root)
+    if scan["unregistered"]:
+        typer.echo(f"{len(scan['unregistered'])} media file(s) have no licence recorded and won't be used "
+                   f"(record them on the Videos page): " + ", ".join(f["path"] for f in scan["unregistered"][:5]))
+    music_id = None
+    if music:
+        m = next((a for a in session.scalars(select(MediaAsset).where(MediaAsset.product_id.is_(None)))
+                  if a.path.split("/")[-1] == music), None)
+        if m is None:
+            typer.echo(f"No licensed music called '{music}' in media/music/.")
+            raise typer.Exit(1)
+        music_id = m.id
+    items = list(session.scalars(select(ContentItem).where(ContentItem.kind == "ad_script",
+                                                           ContentItem.status == ContentStatus.APPROVED)))
+    if product:
+        items = [i for i in items if i.product.name.lower() == product.lower()]
+    done = {v.content_item_id for v in session.scalars(select(Video))}
+    todo = [i for i in items if i.id not in done]
+    if not todo:
+        typer.echo("Nothing to render: no approved ad scripts without a video.")
+        return
+    for item in todo:
+        typer.echo(f"{item.product.name}: {item.angle.replace('_', ' ')} ... ", nl=False)
+        try:
+            v = service.render_item(session, settings, item, music_id=music_id, voice_name=voice_name)
+        except (service.VideoError, ValueError) as exc:
+            typer.echo(f"not rendered: {exc}")
+            continue
+        typer.echo(f"done ({v.duration_seconds:.0f}s) → {settings.video.output_dir}/{v.path}")
+        for w in v.warnings or []:
+            typer.echo(f"   ! {w}")
+    typer.echo("\nWatch and approve: python run.py dashboard → Videos")
 
 
 @cli.command()

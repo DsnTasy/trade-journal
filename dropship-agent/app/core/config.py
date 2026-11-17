@@ -128,6 +128,25 @@ class CompetitorConfig(BaseModel):
     timeout_seconds: float = Field(20, gt=0)
 
 
+class VideoConfig(BaseModel):
+    ffmpeg_path: str = "ffmpeg"
+    ffprobe_path: str = "ffprobe"
+    media_dir: str = "media"  # put footage in media/<product-name>/, music in media/music/
+    output_dir: str = "output/videos"
+    width: int = Field(1080, gt=0)
+    height: int = Field(1920, gt=0)
+    fps: int = Field(30, gt=0)
+    max_shot_seconds: float = Field(4.0, gt=0.5, description="Cut to a new shot at least this often.")
+    end_card_seconds: float = Field(2.5, ge=0)
+    brand_colour: str = "#1d2330"
+    text_colour: str = "#ffffff"
+    font: str = "DejaVu Sans"  # any font installed on your computer
+    caption_size: int = Field(72, gt=0)
+    music_volume: float = Field(0.15, ge=0, le=1)
+    voice_provider: str = "none"  # none | recorded (paid AI voices can be added later)
+    paid_approval_threshold_gbp: float = Field(0.50, ge=0)
+
+
 class StoreConfig(BaseModel):
     platform: str = "shopify"  # "shopify" (chosen) or "custom"
 
@@ -146,6 +165,7 @@ class Settings(BaseModel):
     profit: ProfitConfig = Field(default_factory=ProfitConfig)
     suppliers: SupplierConfig = Field(default_factory=SupplierConfig)
     competitors: CompetitorConfig = Field(default_factory=CompetitorConfig)
+    video: VideoConfig = Field(default_factory=VideoConfig)
     store: StoreConfig = Field(default_factory=StoreConfig)
 
     # Secrets: filled from environment variables, never from config.yaml.

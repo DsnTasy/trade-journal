@@ -95,3 +95,21 @@ competitors:
   cache_hours: 24               # re-use downloaded pages for a day instead of asking again
   max_product_pages: 4          # read at most 4 x 250 products
   timeout_seconds: 20
+
+video:
+  ffmpeg_path: "ffmpeg"         # if ffmpeg isn't on your PATH, put the full path here
+  ffprobe_path: "ffprobe"
+  media_dir: "media"            # your footage: media/<product-name>/   music: media/music/
+  output_dir: "output/videos"
+  width: 1080                   # 9:16 vertical for TikTok, Reels and Shorts
+  height: 1920
+  fps: 30
+  max_shot_seconds: 4           # cut to a new shot at least every 4 seconds
+  end_card_seconds: 2.5
+  brand_colour: "#1d2330"       # end card background
+  text_colour: "#ffffff"
+  font: "DejaVu Sans"           # any font installed on your computer (e.g. "Arial")
+  caption_size: 72
+  music_volume: 0.15            # background music level (0-1)
+  voice_provider: "none"        # none = captions only; recorded = your own voiceover file
+  paid_approval_threshold_gbp: 0.50  # paid AI voice/video calls above this need approval

@@ -275,3 +275,41 @@ class ContentItem(Base):
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     product: Mapped[Product] = relationship()
+
+
+class MediaAsset(Base):
+    """A clip, image or music track you're allowed to use. Nothing without a recorded licence is used."""
+
+    __tablename__ = "media_assets"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    product_id: Mapped[int | None] = mapped_column(ForeignKey("products.id"), nullable=True)  # None = music
+    kind: Mapped[str] = mapped_column(String(10))  # video | image | audio
+    path: Mapped[str] = mapped_column(String(500))  # relative to the media folder
+    licence: Mapped[str] = mapped_column(String(40))  # self_shot | supplier_licensed | royalty_free | own_recording
+    licence_note: Mapped[str | None] = mapped_column(Text, nullable=True)  # where from, licence link, permission
+    duration_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
+    width: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    height: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class Video(Base):
+    """A rendered ad video. Starts as 'rendered'; you approve or reject it."""
+
+    __tablename__ = "videos"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id"))
+    content_item_id: Mapped[int] = mapped_column(ForeignKey("content_items.id"))
+    path: Mapped[str] = mapped_column(String(500))  # relative to output/videos
+    status: Mapped[str] = mapped_column(String(20), default="rendered")  # rendered | approved | rejected
+    duration_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
+    plan: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # shots, captions, music, voice used
+    warnings: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    cost_gbp: Mapped[float] = mapped_column(Float, default=0.0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    product: Mapped[Product] = relationship()
+    content_item: Mapped[ContentItem] = relationship()

@@ -152,3 +152,9 @@ button[disabled] { opacity: 0.45; cursor: not-allowed; }
 .a-draft { background: #fdf3e1; color: var(--warn); }
 .a-superseded { background: var(--line); color: var(--muted); }
 .s-content_ready { background: #e3f4ea; color: var(--ok); }
+
+/* Phase 6: videos */
+.video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.video-card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: grid; gap: 6px; }
+.video-card video { width: 100%; aspect-ratio: 9 / 16; background: #000; border-radius: 6px; }
+form.inline select, form.inline input { font: inherit; padding: 4px 6px; border: 1px solid var(--line); border-radius: 5px; }

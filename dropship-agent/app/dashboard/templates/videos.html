@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Videos{% endblock %}
+{% block content %}
+<h1>Videos</h1>
+<p class="banner warn">Only footage you filmed, supplier-licensed footage, or properly licensed royalty-free media is used.
+No fake customers, fake unboxings or fake testimonials. Placeholders like "real customer clip" are left out.</p>
+{% if not ffmpeg_ok %}<p class="banner danger">ffmpeg isn't installed or isn't on your PATH, so videos can't be rendered yet. See README → Videos.</p>{% endif %}
+
+<h2>1. Media and licences</h2>
+<p class="muted">Put clips and photos in <code>{{ media_root }}/&lt;product-folder&gt;/</code> and music in
+<code>{{ media_root }}/music/</code>, then record each file's licence below. For a voiceover, record yourself and
+save it as <code>voice-&lt;angle&gt;.mp3</code> (e.g. <code>voice-demo.mp3</code>) in the product folder.</p>
+<p class="muted"><small>Product folders: {% for p in products.values() %}<code>{{ slug(p.name) }}</code>{{ ', ' if not loop.last }}{% endfor %}</small></p>
+
+{% if scan.unregistered %}
+<h3>New files: record their licence</h3>
+<table>
+  <thead><tr><th>File</th><th>Licence</th><th>Proof / note</th><th></th></tr></thead>
+  <tbody>
+  {% for f in scan.unregistered %}
+    <tr>
+      <td><code>{{ f.path }}</code>{% if f.unknown_folder %}<br><span class="tag bad">folder doesn't match a product</span>{% endif %}</td>
+      {% if not f.unknown_folder %}
+      <td colspan="3">
+        <form class="inline" hx-post="/media/register">
+          <input type="hidden" name="path" value="{{ f.path }}">
+          <select name="licence">
+            {% for key, label in licences.items() %}{% if (f.is_music and key in music_licences) or (not f.is_music and key in product_licences) %}
+              <option value="{{ key }}">{{ label }}</option>{% endif %}{% endfor %}
+          </select>
+          <input name="note" placeholder="e.g. supplier email 16/11, or licence link" size="36">
+          <button class="approve small" type="submit">Save licence</button>
+        </form>
+      </td>
+      {% else %}<td colspan="3" class="muted">Rename the folder to one of the product folders above.</td>{% endif %}
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% if scan.missing %}<p class="banner warn">These registered files are missing from disk: {{ scan.missing|join(', ') }}</p>{% endif %}
+
+{% if assets %}
+<details class="history" {{ 'open' if not scan.unregistered }}><summary>Registered media ({{ assets|length }})</summary>
+<table>
+  <thead><tr><th>File</th><th>Type</th><th>Licence</th><th>Note</th><th>Length</th><th></th></tr></thead>
+  <tbody>{% for a in assets %}
+    <tr><td><code>{{ a.path }}</code></td><td>{{ a.kind }}</td><td>{{ licences[a.licence] }}</td><td><small>{{ a.licence_note or '' }}</small></td>
+      <td>{{ (a.duration_seconds|string ~ 's') if a.duration_seconds else '' }}</td>
+      <td><button class="reject small" hx-post="/media/{{ a.id }}/remove" hx-confirm="Forget the licence record for {{ a.path }}? (The file stays.)">Forget</button></td></tr>
+  {% endfor %}</tbody>
+</table></details>
+{% endif %}
+
+<h2>2. Render approved ad scripts</h2>
+{% if scripts %}
+<table>
+  <thead><tr><th>Product</th><th>Ad</th><th>Footage</th><th>Render</th></tr></thead>
+  <tbody>
+  {% for s in scripts %}
+    {% set n = footage.get(s.product_id, [])|rejectattr('kind', 'equalto', 'audio')|list|length %}
+    <tr><td>{{ s.product.name }}</td><td>{{ s.angle.replace('_', ' ') }} <small class="muted">v{{ s.version }}</small></td>
+      <td>{{ n }} file(s){% if n == 0 %} <span class="tag bad">add footage</span>{% elif n < 3 %} <span class="tag warn">3+ recommended</span>{% endif %}</td>
+      <td>
+        <form class="inline" hx-post="/videos/render/{{ s.id }}" hx-target="#render-msg-{{ s.id }}" hx-indicator="#rendering-{{ s.id }}">
+          <select name="music_id"><option value="">No music</option>{% for m in music %}<option value="{{ m.id }}">{{ m.path.split('/')[-1] }}</option>{% endfor %}</select>
+          <select name="voice">{% for v in voices %}<option value="{{ v }}">{{ 'Captions only' if v == 'none' else 'My recording' if v == 'recorded' else v }}</option>{% endfor %}</select>
+          <button class="approve small" type="submit" {{ 'disabled' if not ffmpeg_ok or n == 0 }}>Render</button>
+          <span id="rendering-{{ s.id }}" class="htmx-indicator muted">Rendering… (up to a minute)</span>
+        </form>
+        <div id="render-msg-{{ s.id }}"></div>
+      </td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty">No approved ad scripts yet. Approve some on the <a href="/content">Content</a> page.</p>
+{% endif %}
+
+<h2>3. Review videos</h2>
+{% if videos %}
+<div class="video-grid">
+{% for v in videos %}
+  <div class="video-card">
+    <video src="/video-files/{{ v.path }}" controls preload="metadata" playsinline></video>
+    <div><strong>{{ v.product.name }}</strong> · {{ v.content_item.angle.replace('_', ' ') }}
+      <span class="status a-{{ 'approved' if v.status == 'approved' else 'rejected' if v.status == 'rejected' else 'draft' }}">{{ v.status }}</span></div>
+    <small class="muted">{{ '%.0f'|format(v.duration_seconds or 0) }}s · {{ v.plan.shots|length }} shots · music: {{ v.plan.music or 'none' }} · voice: {{ v.plan.voice }}</small>
+    {% for w in v.warnings or [] %}<p class="notes">{{ w }}</p>{% endfor %}
+    <div class="actions-row">
+      {% if v.status != 'approved' %}<button class="approve small" hx-post="/videos/{{ v.id }}/approve">Approve</button>{% endif %}
+      {% if v.status != 'rejected' %}<button class="reject small" hx-post="/videos/{{ v.id }}/reject">Reject</button>{% endif %}
+      <a href="/video-files/{{ v.path }}" download><small>download MP4</small></a>
+    </div>
+  </div>
+{% endfor %}
+</div>
+{% else %}
+<p class="empty">No videos yet.</p>
+{% endif %}
+{% endblock %}

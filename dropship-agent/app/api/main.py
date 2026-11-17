@@ -16,7 +16,7 @@ from sqlalchemy import func, select
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
-from app.api import competitor_routes, content_routes, supplier_routes
+from app.api import competitor_routes, content_routes, supplier_routes, video_routes
 from app.core import approvals
 from app.core.config import Settings, get_settings
 from app.core.cost_tracker import CostTracker
@@ -46,7 +46,7 @@ NAV = [
     ("Profit calculator", "/profit", None),
     ("Competitor reports", "/competitors", None),
     ("Content", "/content", None),
-    ("Videos", None, 6),
+    ("Videos", "/videos", None),
 ]
 
 
@@ -170,6 +170,7 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None, f
     supplier_routes.register(app, templates, settings, get_session, render, require_htmx)
     competitor_routes.register(app, templates, settings, get_session, render, require_htmx, fetcher_factory)
     content_routes.register(app, templates, settings, get_session, render, require_htmx, llm_factory)
+    video_routes.register(app, templates, settings, get_session, render, require_htmx)
 
     # ---------------- JSON API ----------------
     @app.get("/api/status")
