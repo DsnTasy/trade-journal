@@ -13,3 +13,12 @@ promises:
   free_delivery: false          # set true ONLY if you really offer free delivery
   guarantee: ""                 # e.g. "30-day money-back guarantee", ONLY if you really offer it
   delivery_estimate: "Shown per product from the supplier's real delivery times"
+
+# Your business details, used to fill in the policy templates (python run.py policies).
+business:
+  legal_name: ""                # your name (sole trader) or company name
+  trading_address: ""           # UK law requires a geographic address on your site
+  contact_email: ""
+  return_address: ""            # where customers send returns (see README → Policies)
+  company_number: ""            # only if you're a limited company
+  vat_number: ""                # only if VAT-registered

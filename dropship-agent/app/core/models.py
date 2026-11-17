@@ -335,3 +335,31 @@ class StoreListing(Base):
     approval_id: Mapped[int | None] = mapped_column(Integer, nullable=True)  # publish request
 
     product: Mapped[Product] = relationship()
+
+
+class Notification(Base):
+    """Something you should know about: shown in the dashboard (and optionally emailed to you)."""
+
+    __tablename__ = "notifications"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    kind: Mapped[str] = mapped_column(String(30))  # opportunity | budget | job_failed | info
+    title: Mapped[str] = mapped_column(String(300))
+    body: Mapped[str | None] = mapped_column(Text, nullable=True)
+    link: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    emailed: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class JobRun(Base):
+    """One run of a scheduled job."""
+
+    __tablename__ = "job_runs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    job: Mapped[str] = mapped_column(String(50))
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="running")  # running | ok | error
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)

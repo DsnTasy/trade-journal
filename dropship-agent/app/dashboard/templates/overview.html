@@ -21,6 +21,16 @@
   </div>
 </section>
 
+{% if missing %}
+<p class="banner warn">Setup: {{ missing|length }} item(s) not ready yet ({{ missing|map(attribute='name')|join(', ') }}).
+<a href="/setup">See the checklist →</a></p>
+{% endif %}
+{% if notes %}
+<h2>New notifications</h2>
+<ul>{% for n in notes %}<li>{% if n.link %}<a href="{{ n.link }}">{{ n.title }}</a>{% else %}{{ n.title }}{% endif %}</li>{% endfor %}</ul>
+<p><a href="/notifications">All notifications →</a></p>
+{% endif %}
+
 <h2>Product pipeline</h2>
 <ol class="pipeline">
   {% for name, count in pipeline %}

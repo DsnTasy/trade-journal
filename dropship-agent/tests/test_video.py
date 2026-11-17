@@ -7,7 +7,7 @@ import subprocess
 import pytest
 from sqlalchemy import select
 
-from app.core.models import ContentItem, ContentStatus, MediaAsset, Product, ProductStatus, Supplier, Video
+from app.core.models import ContentItem, ContentStatus, Product, ProductStatus, Supplier, Video
 from app.modules.video_maker import media, service, voice
 from app.modules.video_maker.plan import build_plan, clean_caption
 from app.modules.video_maker.render import Style, _ass_colour, ass_subtitles, final_command
@@ -42,7 +42,7 @@ def test_placeholders_never_rendered():
 def test_captions_cover_body_without_overlap():
     p = build_plan(SCRIPT, ASSETS, store_name="Shop")
     assert p.cues[0].start == 0 and p.cues[0].end == 3
-    for a, b in zip(p.cues, p.cues[1:]):
+    for a, b in zip(p.cues, p.cues[1:], strict=False):
         assert a.end <= b.start + 1e-6
     assert p.cues[-1].end == pytest.approx(p.body_seconds)
 

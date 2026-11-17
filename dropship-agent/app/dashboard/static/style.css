@@ -158,3 +158,6 @@ button[disabled] { opacity: 0.45; cursor: not-allowed; }
 .video-card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: grid; gap: 6px; }
 .video-card video { width: 100%; aspect-ratio: 9 / 16; background: #000; border-radius: 6px; }
 form.inline select, form.inline input { font: inherit; padding: 4px 6px; border: 1px solid var(--line); border-radius: 5px; }
+
+/* Phase 8 */
+tr.unread td { background: #f5f8ff; }

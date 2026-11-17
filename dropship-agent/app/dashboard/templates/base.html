@@ -18,6 +18,7 @@
         {% if href %}
           <a href="{{ href }}" class="{{ 'active' if path == href else '' }}">{{ label }}
             {% if href == '/approvals' and pending_count %}<span class="badge">{{ pending_count }}</span>{% endif %}
+            {% if href == '/notifications' and unread_count %}<span class="badge">{{ unread_count }}</span>{% endif %}
           </a>
         {% else %}
           <span class="disabled" title="Built in phase {{ phase }}">{{ label }} <small>phase {{ phase }}</small></span>

@@ -81,7 +81,7 @@ def load_suppliers(path: Path, business: BusinessConfig) -> tuple[list[SupplierR
             "source": f"manual entry ({r.get('source_note') or 'no source given'})",
         }
 
-        def number(col: str, kind=float):
+        def number(col: str, kind=float, r=r, line=line):  # bind this row explicitly
             val = r.get(col, "").replace("£", "").replace("$", "").replace("€", "").replace(",", "")
             if val == "":
                 return None

@@ -118,3 +118,19 @@ video:
   music_volume: 0.15            # background music level (0-1)
   voice_provider: "none"        # none = captions only; recorded = your own voiceover file
   paid_approval_threshold_gbp: 0.50  # paid AI voice/video calls above this need approval
+
+schedule:
+  # Runs while the dashboard is open, or with `python run.py scheduler` in its own window.
+  enabled: false
+  timezone: "Europe/London"
+  research: {every: "daily", at: "07:40", weekday: "mon"}   # every: off | daily | weekly
+  notify_min_score: 70          # tell me about products scoring 70+
+
+notifications:
+  # Always shown in the dashboard. Optionally also emailed to YOU (never to anyone else).
+  email_enabled: false
+  email_to: ""                  # your address
+  email_from: ""                # usually the same as smtp_user
+  smtp_host: ""                 # e.g. smtp.gmail.com (Gmail needs an "app password")
+  smtp_port: 587
+  smtp_user: ""                 # password goes in .env as SMTP_PASSWORD

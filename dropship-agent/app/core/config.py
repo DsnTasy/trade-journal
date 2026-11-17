@@ -147,6 +147,28 @@ class VideoConfig(BaseModel):
     paid_approval_threshold_gbp: float = Field(0.50, ge=0)
 
 
+class JobSchedule(BaseModel):
+    every: str = Field("off", pattern="^(off|daily|weekly)$")
+    at: str = Field("07:40", pattern=r"^([01]\d|2[0-3]):[0-5]\d$", description="24-hour UK time, e.g. 07:40")
+    weekday: str = Field("mon", pattern="^(mon|tue|wed|thu|fri|sat|sun)$", description="For weekly jobs.")
+
+
+class ScheduleConfig(BaseModel):
+    enabled: bool = False
+    timezone: str = "Europe/London"
+    research: JobSchedule = Field(default_factory=lambda: JobSchedule(every="daily"))
+    notify_min_score: float = Field(70, ge=0, le=100, description="Tell me about products scoring at least this.")
+
+
+class NotificationConfig(BaseModel):
+    email_enabled: bool = False  # optional: also email notifications to YOU (never to anyone else)
+    email_to: str = ""
+    email_from: str = ""
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""  # password goes in .env as SMTP_PASSWORD
+
+
 class StoreConfig(BaseModel):
     platform: str = "shopify"  # "shopify" (chosen) or "custom"
     shop: str = ""  # your store's myshopify subdomain, e.g. "my-store" for my-store.myshopify.com
@@ -171,6 +193,8 @@ class Settings(BaseModel):
     suppliers: SupplierConfig = Field(default_factory=SupplierConfig)
     competitors: CompetitorConfig = Field(default_factory=CompetitorConfig)
     video: VideoConfig = Field(default_factory=VideoConfig)
+    schedule: ScheduleConfig = Field(default_factory=ScheduleConfig)
+    notifications: NotificationConfig = Field(default_factory=NotificationConfig)
     store: StoreConfig = Field(default_factory=StoreConfig)
 
     # Secrets: filled from environment variables, never from config.yaml.
@@ -179,6 +203,7 @@ class Settings(BaseModel):
     shopify_client_id: str | None = Field(default=None, exclude=True, repr=False)
     shopify_client_secret: str | None = Field(default=None, exclude=True, repr=False)
     shopify_access_token: str | None = Field(default=None, exclude=True, repr=False)  # older "custom app" tokens
+    smtp_password: str | None = Field(default=None, exclude=True, repr=False)
 
     def path(self, relative: str) -> Path:
         """Turn a path from config.yaml into an absolute path inside the project."""
@@ -201,6 +226,7 @@ def load_settings(config_path: Path | None = None, env_path: Path | None = None)
     settings.shopify_client_id = os.environ.get("SHOPIFY_CLIENT_ID") or None
     settings.shopify_client_secret = os.environ.get("SHOPIFY_CLIENT_SECRET") or None
     settings.shopify_access_token = os.environ.get("SHOPIFY_ACCESS_TOKEN") or None
+    settings.smtp_password = os.environ.get("SMTP_PASSWORD") or None
     return settings
 
 

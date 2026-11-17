@@ -99,6 +99,10 @@ class CostTracker:
 
         after = self.status()
         if after.warning and not before.warning:
+            from app.core.notify import notify
+
+            notify(self.session, kind="budget", link="/logs",
+                   title=f"Budget warning: {after.fraction_used:.0%} of this month's £{after.cap_gbp:.2f} cap used")
             log_event(
                 self.session, module="cost_tracker", action="budget_warning", level="WARNING",
                 message=(f"Budget warning: £{after.spent_gbp:.2f} of £{after.cap_gbp:.2f} used "

@@ -28,6 +28,7 @@ from app.core.models import (
     Product,
     ProductStatus,
     StoreListing,
+    Supplier,
 )
 from app.modules.content_generator import claim_checker
 from app.modules.content_generator.service import build_facts, load_brand
@@ -91,6 +92,12 @@ def readiness(session: Session, settings: Settings, product: Product) -> dict:
         blockers.append("Product is rejected.")
     if product.status not in (ProductStatus.CONTENT_READY, ProductStatus.APPROVED, ProductStatus.PUBLISHED):
         warnings.append("Product isn't 'content ready' yet (approve a page and an ad, after choosing a supplier).")
+    supplier = session.get(Supplier, product.chosen_supplier_id) if product.chosen_supplier_id else None
+    if supplier is not None and supplier.warehouse != "UK":
+        warnings.append("Ships from outside the UK" + (f" ({supplier.warehouse})" if supplier.warehouse else "")
+                        + ": special UK VAT rules apply to imported goods of £135 or less sold to consumers "
+                          "(VAT can be due at the point of sale), and customers may face delays. Check with an "
+                          "accountant before selling, and state the dispatch country in your delivery policy.")
     images = [a for a in _images(session, product)]
     if not images:
         warnings.append("No licensed photos: the listing will have no images. Add photos on the Videos page.")

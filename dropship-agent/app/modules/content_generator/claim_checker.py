@@ -18,7 +18,7 @@ Main sources of the rules (in plain terms):
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 SEVERITY_ORDER = {"high": 0, "medium": 1, "low": 2}
 

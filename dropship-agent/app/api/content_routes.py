@@ -70,8 +70,8 @@ def highlight(text: str, findings: list[dict] | None, field_name: str) -> Markup
         if f["field"] != field_name or f["rule"] == "length":
             continue
         safe = str(escape(f["match"]))
-        out = re.sub(re.escape(safe), lambda m: f'<mark class="sev-{f["severity"]}" title="{escape(f["message"])}">'
-                                                f'{m.group(0)}</mark>', out, flags=re.I)
+        out = re.sub(re.escape(safe), lambda m, f=f: f'<mark class="sev-{f["severity"]}" title="{escape(f["message"])}">'
+                                                     f'{m.group(0)}</mark>', out, flags=re.I)
     return Markup(out)
 
 

@@ -87,9 +87,6 @@ def _gbp(v: float) -> str:
     return f"{'-' if v < 0 else ''}£{abs(v):,.2f}"
 
 
-def _not_yet(name: str, phase: int) -> None:
-    typer.echo(f"'{name}' is built in phase {phase}. Nothing was run.")
-
 
 @cli.command()
 def research(
@@ -373,9 +370,73 @@ def publish(
 
 
 @cli.command(name="all")
-def run_all():
-    """Run the whole pipeline (available once all phases are built)."""
-    _not_yet("all", 8)
+def run_all(
+    with_content: bool = typer.Option(False, "--with-content", help="Also write pages/ads with Claude (paid)."),
+):
+    """Run every safe step in order and stop at each approval gate. Nothing is published or sent."""
+    from app.core.pipeline import run_all as pipeline
+
+    settings, session = _session()
+    typer.echo(f"Mode: {'DRY RUN' if settings.dry_run else 'LIVE'} (this command never publishes or sends anything)\n")
+    for step in pipeline(session, settings, with_content=with_content):
+        mark = {"done": "✓", "skipped": "-", "failed": "✗"}[step.status]
+        typer.echo(f"{mark} {step.name}")
+        for line in step.lines:
+            typer.echo(f"    {line}")
+    typer.echo("\nOpen the dashboard to review and approve: python run.py dashboard")
+
+
+@cli.command()
+def doctor():
+    """Check your setup: what's ready, what's missing, and how to fix it."""
+    from app.core.doctor import run_checks
+
+    settings = get_settings()
+    area = None
+    for c in run_checks(settings):
+        if c.area != area:
+            area = c.area
+            typer.echo(f"\n{area}")
+        typer.echo(f"  {'✓' if c.ok else '✗'} {c.name}: {c.detail}")
+        if not c.ok and c.fix:
+            typer.echo(f"      → {c.fix}" + (f"  (needed for {c.needed_for})" if c.needed_for != "everything" else ""))
+
+
+@cli.command()
+def scheduler():
+    """Run scheduled research in this window (leave it open). Ctrl+C to stop."""
+    import time as _time
+
+    from app.core.scheduler import tick
+
+    settings, session = _session()
+    session.close()
+    if not settings.schedule.enabled:
+        typer.echo("Scheduling is off. Set schedule.enabled: true in config.yaml first.")
+        raise typer.Exit(1)
+    r = settings.schedule.research
+    typer.echo(f"Scheduler running: research {r.every} at {r.at} UK time. Ctrl+C to stop.")
+    factory = make_session_factory(make_engine(settings.database_url))
+    try:
+        while True:
+            for job in tick(factory, settings):
+                typer.echo(f"Ran {job}.")
+            _time.sleep(60)
+    except KeyboardInterrupt:
+        typer.echo("Stopped.")
+
+
+@cli.command()
+def policies():
+    """Fill the UK policy templates (privacy, returns, delivery) with your details from brand.yaml."""
+    from app.modules.content_generator.service import load_brand as load_brand_safe
+    from app.core.policies import generate
+
+    settings = get_settings()
+    out = settings.path("output/policies")
+    for path, checks in generate(load_brand_safe(), out):
+        typer.echo(f"  {path.relative_to(settings.path('.'))}: " + (f"{checks} [CHECK] item(s) to fill in" if checks else "complete"))
+    typer.echo("\nFix every [CHECK], then paste into Shopify: Settings → Policies. Templates are not legal advice.")
 
 
 if __name__ == "__main__":

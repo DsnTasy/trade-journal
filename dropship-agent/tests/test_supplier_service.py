@@ -1,6 +1,6 @@
 """Suppliers end to end: import → score → profit → choose → email drafts → replies → dashboard."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 
 import pytest
 from fastapi.testclient import TestClient

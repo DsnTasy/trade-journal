@@ -1,3 +1,10 @@
+// Hardening: the dashboard never needs HTMX to run code from page content.
+if (window.htmx) {
+  htmx.config.allowEval = false;
+  htmx.config.allowScriptTags = false;
+  htmx.config.selfRequestsOnly = true;
+}
+
 // Show a readable message when a dashboard button fails (instead of silently doing nothing).
 document.addEventListener("htmx:responseError", function (e) {
   var msg = "Something went wrong.";

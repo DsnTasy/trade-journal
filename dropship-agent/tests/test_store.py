@@ -10,7 +10,7 @@ from sqlalchemy import select
 from app.api.main import create_app
 from app.core import approvals
 from app.core.models import (ActionType, ApprovalStatus, ContentItem, ContentStatus, MediaAsset, Product,
-                             ProductStatus, StoreListing, Supplier)
+                             ProductStatus, Supplier)
 from app.modules.store_publisher import listing as L
 from app.modules.store_publisher import service
 from app.modules.store_publisher.shopify import ShopifyClient, ShopifyError, ShopifyNotConfigured

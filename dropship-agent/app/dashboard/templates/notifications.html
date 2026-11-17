@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Notifications{% endblock %}
+{% block content %}
+<h1>Notifications</h1>
+<div class="actions-row">
+  {% if unread_count %}<button class="reject small" hx-post="/notifications/read">Mark all as read</button>{% endif %}
+  <button class="approve small" hx-post="/schedule/run-now" hx-indicator="#run-working">Run research now (free)</button>
+  <span id="run-working" class="htmx-indicator muted">Researching…</span>
+  <small class="muted">Scheduled research: {{ settings.schedule.research.every }}{% if settings.schedule.research.every == 'weekly' %} on {{ settings.schedule.research.weekday }}{% endif %}
+    at {{ settings.schedule.research.at }} UK time, {{ 'ON (while the dashboard is open)' if settings.schedule.enabled else 'OFF (turn on in config.yaml → schedule.enabled)' }}.</small>
+</div>
+{% if items %}
+<table>
+  <thead><tr><th>When (UTC)</th><th>What</th><th></th></tr></thead>
+  <tbody>{% for n in items %}
+    <tr class="{{ 'unread' if not n.read_at }}"><td>{{ n.created_at.strftime('%d %b %H:%M') }}</td>
+      <td><span class="tag {{ 'bad' if n.kind in ('job_failed', 'budget') else 'ok' if n.kind == 'opportunity' else '' }}">{{ n.kind.replace('_', ' ') }}</span>
+        <strong>{{ n.title }}</strong>{% if n.body %}<br><small class="muted">{{ n.body }}</small>{% endif %}</td>
+      <td>{% if n.link %}<a href="{{ n.link }}">open →</a>{% endif %}{% if n.emailed %} <small class="muted">emailed</small>{% endif %}</td></tr>
+  {% endfor %}</tbody>
+</table>
+{% else %}<p class="empty">No notifications yet.</p>{% endif %}
+<h2>Recent scheduled runs</h2>
+{% if runs %}
+<table><thead><tr><th>Job</th><th>Started (UTC)</th><th>Result</th><th>Summary</th></tr></thead>
+<tbody>{% for r in runs %}<tr class="{{ 'lvl-error' if r.status == 'error' }}"><td>{{ r.job }}</td><td>{{ r.started_at.strftime('%d %b %H:%M') }}</td><td>{{ r.status }}</td><td>{{ r.summary or '' }}</td></tr>{% endfor %}</tbody></table>
+{% else %}<p class="empty">No runs yet.</p>{% endif %}
+{% endblock %}

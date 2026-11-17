@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Setup checklist{% endblock %}
+{% block content %}
+<h1>Setup checklist</h1>
+<p class="muted">What's ready and what's missing. You don't need everything at once: each item says which feature needs it.
+Same as <code>python run.py doctor</code>. Change settings in <code>config.yaml</code> and keys in <code>.env</code>, then restart the dashboard.</p>
+{% set ns = namespace(area=None) %}
+<table>
+  <tbody>
+  {% for c in checks %}
+    {% if c.area != ns.area %}{% set ns.area = c.area %}<tr><th colspan="3">{{ c.area }}</th></tr>{% endif %}
+    <tr class="{{ '' if c.ok else 'lvl-warning' }}">
+      <td style="width:2em">{{ '✅' if c.ok else '⬜' }}</td>
+      <td><strong>{{ c.name }}</strong><br><small class="muted">{{ c.detail }}</small></td>
+      <td>{% if not c.ok %}{{ c.fix }}{% if c.needed_for != 'everything' %}<br><small class="muted">Needed for: {{ c.needed_for }}</small>{% endif %}{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

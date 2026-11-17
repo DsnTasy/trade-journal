@@ -6,10 +6,12 @@ Run it with:  python run.py dashboard   then open http://127.0.0.1:8000
 from __future__ import annotations
 
 from collections.abc import Iterator
+from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select
@@ -21,14 +23,19 @@ from app.core import approvals
 from app.core.config import Settings, get_settings
 from app.core.cost_tracker import CostTracker
 from app.core.db import init_db, make_engine, make_session_factory
+from app.core.doctor import run_checks
 from app.core.logger import log_event, setup_file_logging
+from app.core.notify import unread_count
+from app.core.scheduler import BackgroundScheduler, run_job
 from app.core.models import (
     PIPELINE,
     ApprovalRequest,
     ApprovalStatus,
     CostEntry,
+    JobRun,
     LogEntry,
     Metric,
+    Notification,
     Product,
     ProductStatus,
     Supplier,
@@ -36,9 +43,11 @@ from app.core.models import (
 
 DASHBOARD_DIR = Path(__file__).resolve().parents[1] / "dashboard"
 
-# Pages in the side menu. Ones with a phase number are not built yet.
+# Pages in the side menu.
 NAV = [
     ("Overview", "/", None),
+    ("Setup checklist", "/setup", None),
+    ("Notifications", "/notifications", None),
     ("Opportunities", "/products", None),
     ("Approval queue", "/approvals", None),
     ("Logs & costs", "/logs", None),
@@ -52,15 +61,35 @@ NAV = [
 
 
 def create_app(settings: Settings | None = None, engine: Engine | None = None, fetcher_factory=None,
-               llm_factory=None, shopify_factory=None) -> FastAPI:
+               llm_factory=None, shopify_factory=None, start_scheduler: bool | None = None) -> FastAPI:
     """The factories let tests swap in a fake website fetcher / fake Claude / fake Shopify."""
     settings = settings or get_settings()
     engine = engine or make_engine(settings.database_url)
     init_db(engine)
     setup_file_logging(settings.path(settings.log_file))
     session_factory = make_session_factory(engine)
+    run_scheduler = settings.schedule.enabled if start_scheduler is None else start_scheduler
 
-    app = FastAPI(title="Dropship Agent", docs_url="/api/docs")
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI):
+        # Scheduled research runs in the background while the dashboard is open (if enabled).
+        sched = BackgroundScheduler(session_factory, settings) if run_scheduler else None
+        if sched:
+            sched.start()
+        yield
+        if sched:
+            sched.stop()
+
+    app = FastAPI(title="Dropship Agent", docs_url="/api/docs", lifespan=lifespan)
+
+    @app.exception_handler(Exception)
+    async def friendly_errors(request: Request, exc: Exception):
+        # Anything unexpected: log it, and show a readable message instead of a blank error page.
+        with session_factory() as session:
+            log_event(session, module="dashboard", action="error", level="ERROR", dry_run=settings.dry_run,
+                      message=f"{request.method} {request.url.path}: {type(exc).__name__}: {exc}")
+        return JSONResponse(status_code=500, content={
+            "detail": f"Something went wrong ({type(exc).__name__}: {exc}). It's recorded on the Logs page."})
     app.mount("/static", StaticFiles(directory=DASHBOARD_DIR / "static"), name="static")
     templates = Jinja2Templates(directory=DASHBOARD_DIR / "templates")
     # Show 2.0 as "2" and 17.99 as "17.99" (no pointless trailing zeros).
@@ -87,7 +116,7 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None, f
         return templates.TemplateResponse(
             request, name,
             {"settings": settings, "budget": budget, "nav": NAV, "pending_count": pending_count,
-             "path": request.url.path, **ctx},
+             "unread_count": unread_count(session), "path": request.url.path, **ctx},
         )
 
     # ---------------- pages ----------------
@@ -96,7 +125,35 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None, f
         counts = dict(session.execute(select(Product.status, func.count()).group_by(Product.status)).all())
         pipeline = [(s.value.replace("_", " ").capitalize(), counts.get(s, 0)) for s in PIPELINE]
         recent = list(session.scalars(select(LogEntry).order_by(LogEntry.id.desc()).limit(8)))
-        return render(request, "overview.html", session, pipeline=pipeline, recent=recent)
+        missing = [c for c in run_checks(settings) if not c.ok]
+        notes = list(session.scalars(select(Notification).where(Notification.read_at.is_(None))
+                                     .order_by(Notification.id.desc()).limit(5)))
+        last_runs = list(session.scalars(select(JobRun).order_by(JobRun.id.desc()).limit(3)))
+        return render(request, "overview.html", session, pipeline=pipeline, recent=recent, missing=missing,
+                      notes=notes, last_runs=last_runs)
+
+    @app.get("/setup", response_class=HTMLResponse)
+    def setup_page(request: Request, session: Session = Depends(get_session)):
+        return render(request, "setup.html", session, checks=run_checks(settings))
+
+    @app.get("/notifications", response_class=HTMLResponse)
+    def notifications(request: Request, session: Session = Depends(get_session)):
+        items = list(session.scalars(select(Notification).order_by(Notification.id.desc()).limit(100)))
+        runs = list(session.scalars(select(JobRun).order_by(JobRun.id.desc()).limit(10)))
+        return render(request, "notifications.html", session, items=items, runs=runs)
+
+    @app.post("/notifications/read", dependencies=[Depends(require_htmx)])
+    def mark_read(session: Session = Depends(get_session)):
+        now = datetime.now(UTC)
+        for n in session.scalars(select(Notification).where(Notification.read_at.is_(None))):
+            n.read_at = now
+        session.commit()
+        return Response(status_code=204, headers={"HX-Refresh": "true"})
+
+    @app.post("/schedule/run-now", dependencies=[Depends(require_htmx)])
+    def run_now(session: Session = Depends(get_session)):
+        run_job("research", session, settings)  # free, read-only job
+        return Response(status_code=204, headers={"HX-Refresh": "true"})
 
     @app.get("/products", response_class=HTMLResponse)
     def products(request: Request, session: Session = Depends(get_session)):

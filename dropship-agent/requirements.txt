@@ -8,6 +8,7 @@ python-dotenv==1.2.4   # reads secrets from .env
 typer==0.29.1          # the `python run.py ...` command line
 anthropic==2.9.0       # official Claude API client
 httpx==0.28.1          # web requests to data-source APIs (also used by tests)
+tzdata==2026.6         # UK time zone data for the scheduler (needed on Windows)
 
 # Testing only
 pytest==9.2.0          # runs the tests
