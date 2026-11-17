@@ -95,7 +95,8 @@ def test_dashboard_opportunities_and_shortlist(session, research_settings, engin
     run_research(session, research_settings)
     client = TestClient(create_app(research_settings, engine))
     page = client.get("/products").text
-    assert page.index("Pet hair roller") < page.index("Plain mug") < page.index("Kids slime toy")
+    table = page[page.index("<table"):]  # the warnings box above may mention products too
+    assert table.index("Pet hair roller") < table.index("Plain mug") < table.index("Kids slime toy")
     assert "avoided: toys" in page
 
     p = session.scalars(select(Product).where(Product.name == "Pet hair roller")).one()
@@ -115,3 +116,10 @@ def test_dashboard_opportunities_and_shortlist(session, research_settings, engin
     assert session.get(Product, p.id).status == ProductStatus.SHORTLISTED
 
     assert client.post(f"/products/{p.id}/status/published", headers={"HX-Request": "true"}).status_code == 404
+
+
+def test_opportunities_page_shows_research_problems(session, research_settings, engine, tmp_path):
+    write(tmp_path / "trends" / "broken.csv", "not,a,trends,file\n1,2,3,4\n")
+    run_research(session, research_settings)
+    page = TestClient(create_app(research_settings, engine)).get("/products").text
+    assert "Things to know from the last research run" in page and "doesn" in page

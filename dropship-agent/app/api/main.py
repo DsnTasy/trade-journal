@@ -160,7 +160,11 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None, f
         rows = list(session.scalars(select(Product)))
         # Ranked: not-excluded first, then highest score; unscored products last.
         rows.sort(key=lambda p: (bool((p.score_details or {}).get("excluded")), p.score is None, -(p.score or 0)))
-        return render(request, "products.html", session, products=rows)
+        # Show what the last research run couldn't use (e.g. an unreadable Trends file), not just in the logs.
+        last = session.scalars(select(LogEntry).where(LogEntry.module == "product_research", LogEntry.action == "run")
+                               .order_by(LogEntry.id.desc())).first()
+        problems = (last.details or {}).get("problems", []) if last else []
+        return render(request, "products.html", session, products=rows, problems=problems, last_run=last)
 
     @app.get("/products/{product_id}", response_class=HTMLResponse)
     def product_detail(request: Request, product_id: int, session: Session = Depends(get_session)):

@@ -5,6 +5,10 @@
 <p class="muted">Ranked by score (0-100). <strong>Data</strong> shows how much of the scoring data was available.
 Scores are a filter, not a verdict. Click a product to see every number and where it came from.
 Run <code>python run.py research</code> to update.</p>
+{% if problems %}
+<div class="findings"><strong>Things to know from the last research run{% if last_run %} ({{ last_run.created_at.strftime('%d %b %H:%M') }} UTC){% endif %}:</strong>
+  <ul>{% for p in problems %}<li>{{ p }}</li>{% endfor %}</ul></div>
+{% endif %}
 {% if products %}
 <table>
   <thead><tr><th>#</th><th>Product</th><th>Score</th><th>Data</th><th>Why it might work</th><th>Why it might not</th><th>Status</th></tr></thead>
