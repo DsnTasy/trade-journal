@@ -8,6 +8,10 @@ echo.
 python --version >nul 2>nul
 if errorlevel 1 goto nopython
 
+REM Windows limits file paths to 260 characters; deep folders break the install.
+python -c "import os,sys; sys.exit(1 if len(os.getcwd()) > 70 else 0)"
+if errorlevel 1 goto longpath
+
 if not exist ".venv\Scripts\activate.bat" (
   echo Creating a private Python environment...
   python -m venv .venv
@@ -40,9 +44,20 @@ echo Then double-click setup.bat again.
 pause
 exit /b 1
 
+:longpath
+echo This folder is too deep for Windows - some files would go over its 260-character path limit.
+echo Current folder: %CD%
+echo Move the dropship-agent folder somewhere short, for example C:\Users\%USERNAME%\dropship-agent
+echo In File Explorer, type %%USERPROFILE%% in the address bar to get there.
+echo If a .venv folder exists inside dropship-agent, delete it, then run setup.bat again.
+pause
+exit /b 1
+
 :installfailed
 echo.
 echo Installing packages failed - see the messages above.
-echo Check your internet connection and try again.
+echo If it mentions "Long Path", move the dropship-agent folder somewhere short,
+echo for example C:\Users\%USERNAME%\dropship-agent, delete its .venv folder, and run setup.bat again.
+echo Otherwise check your internet connection and try again.
 pause
 exit /b 1

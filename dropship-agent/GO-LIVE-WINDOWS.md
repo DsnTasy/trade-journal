@@ -20,8 +20,11 @@ Work through the parts in order. Everything up to Part 4 is free and safe: the s
 **3. Download the project**
 1. Log in to GitHub in your browser, then open:
    `https://github.com/DsnTasy/trade-journal/archive/refs/heads/claude/new-session-baq6ot.zip`
-2. Open your **Downloads** folder → right-click the ZIP → **Extract All** → choose `Documents` → **Extract**.
-3. Open the extracted folder, then the **`dropship-agent`** folder inside it.
+2. Open your **Downloads** folder → right-click the ZIP → **Extract All** → **Extract**.
+3. Inside the extracted folders, find the **`dropship-agent`** folder → right-click → **Cut**. In File Explorer's
+   address bar type `%USERPROFILE%` → Enter → right-click → **Paste**. (Windows has a 260-character path limit:
+   left deep inside Downloads, the install fails with a "Long Path" error.)
+4. Open `C:\Users\<you>\dropship-agent`.
 
 **4. Set it up**
 1. Double-click **`setup.bat`**. It installs everything (a few minutes) and finishes with a checklist.
