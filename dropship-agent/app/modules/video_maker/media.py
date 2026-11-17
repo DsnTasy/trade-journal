@@ -27,9 +27,15 @@ LICENCES = {
     "supplier_licensed": "Supplier gave permission to use it (keep their message)",
     "royalty_free": "Royalty-free with a licence that allows ads (keep the licence link)",
     "own_recording": "My own voice recording",
+    "ai_generated": "Made with an AI tool whose terms allow commercial use (say which tool)",
 }
-PRODUCT_LICENCES = {"self_shot", "supplier_licensed", "royalty_free"}
-MUSIC_LICENCES = {"royalty_free", "self_shot"}
+PRODUCT_LICENCES = {"self_shot", "supplier_licensed", "royalty_free", "ai_generated"}
+MUSIC_LICENCES = {"royalty_free", "self_shot", "ai_generated"}
+
+# Shown wherever AI-generated media is used.
+AI_RULES = ("Contains AI-generated media: label it as AI-generated when you post (TikTok and Meta require "
+            "this for realistic AI content), and make sure no AI clip shows the product looking or working "
+            "better than the real one.")
 
 
 def slug(name: str) -> str:
@@ -106,6 +112,9 @@ def register(session: Session, media_root: Path, ffprobe: str, rel_path: str, li
         raise ValueError(f"Choose one of: {', '.join(LICENCES[x] for x in sorted(allowed))}.")
     if licence in ("supplier_licensed", "royalty_free") and not note.strip():
         raise ValueError("Add a note saying where the permission or licence is (e.g. supplier email date, licence link).")
+    if licence == "ai_generated" and not note.strip():
+        raise ValueError("Add a note saying which AI tool made it and that its terms allow commercial use "
+                         "(e.g. 'Runway, paid plan, commercial use allowed').")
     product = None
     if not is_music:
         product = next((p for p in session.scalars(select(Product)) if slug(p.name) == folder), None)

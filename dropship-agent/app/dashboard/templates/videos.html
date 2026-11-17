@@ -7,6 +7,9 @@ No fake customers, fake unboxings or fake testimonials. Placeholders like "real 
 {% if not ffmpeg_ok %}<p class="banner danger">ffmpeg isn't installed or isn't on your PATH, so videos can't be rendered yet. See README → Videos.</p>{% endif %}
 
 <h2>1. Media and licences</h2>
+<p class="muted"><strong>AI clips:</strong> you can make background or lifestyle shots with an AI video tool (e.g. Runway,
+Google Veo, Kling) and save them here with the licence "Made with an AI tool". Use AI for the scene around the product,
+and real footage of your sample for the product itself.</p>
 <p class="muted">Put clips and photos in <code>{{ media_root }}/&lt;product-folder&gt;/</code> and music in
 <code>{{ media_root }}/music/</code>, then record each file's licence below. For a voiceover, record yourself and
 save it as <code>voice-&lt;angle&gt;.mp3</code> (e.g. <code>voice-demo.mp3</code>) in the product folder.</p>
@@ -86,6 +89,7 @@ save it as <code>voice-&lt;angle&gt;.mp3</code> (e.g. <code>voice-demo.mp3</code
     <div><strong>{{ v.product.name }}</strong> · {{ v.content_item.angle.replace('_', ' ') }}
       <span class="status a-{{ 'approved' if v.status == 'approved' else 'rejected' if v.status == 'rejected' else 'draft' }}">{{ v.status }}</span></div>
     <small class="muted">{{ '%.0f'|format(v.duration_seconds or 0) }}s · {{ v.plan.shots|length }} shots · music: {{ v.plan.music or 'none' }} · voice: {{ v.plan.voice }}</small>
+    {% if v.plan.contains_ai %}<span class="tag warn">contains AI media: label it when posting</span>{% endif %}
     {% for w in v.warnings or [] %}<p class="notes">{{ w }}</p>{% endfor %}
     <div class="actions-row">
       {% if v.status != 'approved' %}<button class="approve small" hx-post="/videos/{{ v.id }}/approve">Approve</button>{% endif %}

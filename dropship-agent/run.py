@@ -57,13 +57,19 @@ def status():
 
 
 @cli.command()
-def dashboard(port: int = 8000):
+def dashboard(port: int = 8000, open_browser: bool = typer.Option(False, "--open", help="Open it in your browser.")):
     """Start the dashboard at http://127.0.0.1:8000 (Ctrl+C to stop)."""
+    import threading
+    import webbrowser
+
     import uvicorn
 
     from app.api.main import create_app
 
-    typer.echo(f"Open http://127.0.0.1:{port} in your browser. Press Ctrl+C to stop.")
+    url = f"http://127.0.0.1:{port}"
+    typer.echo(f"Dashboard: {url}  (keep this window open; press Ctrl+C to stop)")
+    if open_browser:
+        threading.Timer(2.5, lambda: webbrowser.open(url)).start()  # give the server a moment to start
     # 127.0.0.1 = only reachable from your own computer, not your network.
     uvicorn.run(create_app(), host="127.0.0.1", port=port)
 

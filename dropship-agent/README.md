@@ -16,42 +16,23 @@ without your approval.
 
 ---
 
-## Quick start (about 30-45 minutes)
+## Quick start
 
-### 1. Install Python 3.11+ (5 min)
-- **Windows:** [python.org/downloads](https://www.python.org/downloads/). In the installer **tick "Add python.exe to PATH"**.
-- **Mac:** [python.org/downloads](https://www.python.org/downloads/).
+**On Windows, follow [GO-LIVE-WINDOWS.md](GO-LIVE-WINDOWS.md)**: install Python 3.13, double-click
+`setup.bat`, then `start.bat`. It covers everything from download to a live Shopify store and Meta ads.
 
-Check: open a terminal (Windows: *Command Prompt*; Mac: *Terminal*) and type `python --version`
-(on a Mac you may need `python3` instead of `python` in every command below).
-
-### 2. Get the code (5 min)
-On GitHub, open this repository, switch the branch selector (it says **main**) to the branch that has
-the `dropship-agent` folder, then **Code → Download ZIP**. Unzip it, and open a terminal **inside the
-`dropship-agent` folder** (Windows: open the folder, type `cmd` in the address bar, press Enter).
-
-### 3. Install (5-10 min)
+**On a Mac (or by hand):**
 ```bash
-python -m venv .venv
-.venv\Scripts\activate          # Windows
-source .venv/bin/activate        # Mac/Linux
+python3 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+cp .env.example .env               # Windows: copy .env.example .env
+python run.py doctor               # what's ready, what's missing, and how to fix it
+python run.py init
+python run.py dashboard --open     # http://127.0.0.1:8000  (Ctrl+C to stop)
 ```
-You'll see `(.venv)` at the start of the line. Run the `activate` line again each time you open a new terminal.
-
-### 4. Settings and secrets (2 min)
-Copy `.env.example` to a new file called `.env` (secrets go here: **never share it**).
-Open `brand.yaml` and put in your store name. Everything else can wait.
-
-### 5. Check your setup and start (5 min)
-```bash
-python run.py doctor       # what's ready, what's missing, and how to fix it
-python run.py init         # creates the database
-python run.py demo         # a harmless DEMO approval so you can try the buttons
-python run.py dashboard    # open http://127.0.0.1:8000  (Ctrl+C to stop)
-```
-The dashboard's **Setup checklist** page shows the same as `doctor`. You don't need every key
-at once: each item says which feature needs it.
+Use **Python 3.13** (tested). Put your store name in `brand.yaml`. The **Setup checklist** page shows what each
+feature still needs.
 
 ---
 

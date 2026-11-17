@@ -108,8 +108,11 @@ def render_item(session: Session, settings: Settings, item: ContentItem, *, musi
             shot["asset_path"] = Path(shot["asset_path"]).relative_to(root.resolve()).as_posix()
         except ValueError:
             pass
+    uses_ai = any(a.licence == "ai_generated" for a in assets) or bool(music_asset and music_asset.licence == "ai_generated")
+    if uses_ai:
+        plan.warnings.append(media.AI_RULES)
     plan_dict.update(music=music_asset.path if music_asset else None, voice=provider.name if voice_file else "none",
-                     licences={a.path: a.licence for a in assets})
+                     licences={a.path: a.licence for a in assets}, contains_ai=uses_ai)
     video = Video(product_id=item.product_id, content_item_id=item.id, path=rel, duration_seconds=plan.total_seconds,
                   plan=plan_dict, warnings=plan.warnings, cost_gbp=cost)
     session.add(video)

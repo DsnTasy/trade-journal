@@ -233,3 +233,27 @@ def test_dashboard_videos_flow(session, video_settings, product, engine, tmp_pat
     assert web.post(f"/videos/{v.id}/approve", headers=hx).status_code == 204
     session.expire_all()
     assert session.get(Video, v.id).status == "approved"
+
+
+def test_ai_generated_licence_needs_tool_note(session, video_settings, product, tmp_path):
+    root = tmp_path / "media"
+    (root / "pet-roller").mkdir(parents=True)
+    (root / "pet-roller" / "ai-scene.mp4").write_bytes(b"x")
+    with pytest.raises(ValueError, match="which AI tool"):
+        media.register(session, root, "ffprobe", "pet-roller/ai-scene.mp4", "ai_generated", "")
+    a = media.register(session, root, "ffprobe", "pet-roller/ai-scene.mp4", "ai_generated", "Runway, commercial use ok")
+    assert a.licence == "ai_generated"
+
+
+@needs_ffmpeg
+def test_video_with_ai_clip_is_flagged_for_labelling(session, video_settings, product, tmp_path):
+    root = tmp_path / "media"
+    make_media(root)
+    media.register(session, root, "ffprobe", "pet-roller/a-landscape.mp4", "ai_generated", "Veo, commercial use ok")
+    item = ContentItem(product_id=product.id, kind="ad_script", angle="demo", data={**SCRIPT, "duration_seconds": 10},
+                       status=ContentStatus.APPROVED)
+    session.add(item)
+    session.commit()
+    v = service.render_item(session, video_settings, item)
+    assert v.plan["contains_ai"] is True
+    assert any("label it as AI-generated" in w for w in v.warnings)
