@@ -18,8 +18,8 @@ content, and shows everything in a dashboard where **you approve every real acti
 | 4 | Competitor analyser (research only: robots.txt + terms checked first) | ✅ Done |
 | 5 | Content generator (product pages, 3 ad scripts) + UK claim checker | ✅ Done |
 | 6 | Video maker (9:16 MP4s with captions, music, voiceover, end card) | ✅ Done |
-| 7 | Store publisher (Shopify) | Next |
-| 8 | Scheduler, notifications, polish | |
+| 7 | Shopify publisher: drafts, approval-gated publishing, no duplicates | ✅ Done |
+| 8 | Scheduler, notifications, polish | Next |
 
 ---
 
@@ -178,6 +178,51 @@ Never faked: no invented customers, unboxings or testimonials. Script lines that
 Paid AI voices or AI video can be plugged in later (one small class each, with cost tracking and approval).
 Tell me which provider you'd like once you have an account, and I'll add and test it.
 
+## Publishing to Shopify (phase 7)
+
+Dashboard → **Store (Shopify)**. For each product with approved content:
+
+1. **Send to Shopify as draft**: creates the product on Shopify as a **DRAFT** (customers can't see it) with
+   your approved title, description, FAQs, SEO text, tags, price and licensed photos. Sending again
+   **updates the same product**, never a duplicate. Nothing is sent if nothing changed.
+2. Check the draft in your Shopify admin (the page links to it). Set up shipping rates and your
+   policies in Shopify if you haven't already.
+3. **Request publish** → it appears in the **Approval queue** → **Approve** → **Run**. Only then is the
+   product set to Active and published to your Online Store.
+4. **Unpublish** takes it off sale again (back to draft) at any time.
+
+Safety checks before anything is sent: an approved product page, a price, a chosen supplier, no
+high-risk claims, and, for products with compliance flags (electrical, toys, cosmetics...), your
+confirmation that you've checked the rules and have the supplier's certificates. Prices are never shown
+with a fake "was" price. In **dry-run mode** every step only logs what it would do.
+
+### Connect Shopify (about 15 minutes)
+
+Shopify no longer lets you create the old "custom app" tokens in the store admin, so you create a
+small private app in Shopify's **Dev Dashboard** instead:
+
+1. Go to **[dev.shopify.com/dashboard](https://dev.shopify.com/dashboard/)** and log in with your Shopify account.
+2. For testing, create a free **development store** from the **Dev stores** page there. (Using the Dev Dashboard
+   keeps the app and store in the same organisation, which this connection method needs.)
+3. **Apps → Create app → Start from Dev Dashboard**, name it e.g. "Dropship Agent", **Create**.
+4. On **Versions**, create a version: leave the App URL as the default
+   (`https://shopify.dev/apps/default-app-home`), and under **Scopes** add:
+   `read_products`, `write_products`, `read_publications`, `write_publications`. Click **Release**.
+5. **Install app** → choose your store → **Install**.
+6. Open the app's **Settings** and copy the **Client ID** and **Client secret** into `.env`:
+   ```
+   SHOPIFY_CLIENT_ID=...
+   SHOPIFY_CLIENT_SECRET=...
+   ```
+7. In `config.yaml`, set `store.shop` to your store's subdomain (`my-store` for `my-store.myshopify.com`).
+8. Test it (read-only): `python run.py publish --test-connection`, or **Test connection** on the Store page.
+
+If you see `shop_not_permitted`, the app and store are in different organisations: create the store from the
+Dev Dashboard's **Dev stores** page. If you already have an older admin-created custom app token, you can put
+it in `SHOPIFY_ACCESS_TOKEN` instead of steps 3-6.
+
+To publish for real you also need `dry_run: false` in `config.yaml`. Approvals are still required.
+
 ## Commands
 
 | Command | What it does |
@@ -192,7 +237,8 @@ Tell me which provider you'd like once you have an account, and I'll add and tes
 | `python run.py competitor https://store.co.uk` | Research a competitor (facts only; add `--terms-checked` if you've read their terms and we couldn't find them) |
 | `python run.py content` | Write a page + 3 ad scripts for products with a chosen supplier (`--product NAME`, `--what page|ads|all`; paid) |
 | `python run.py video` | Render all approved ad scripts into MP4s (`--product NAME`, `--music track.mp3`, `--voice recorded`) |
-| `python run.py publish / all` | Arrive in later phases |
+| `python run.py publish` | Shopify readiness for each product (`--send-drafts` sends drafts; `--test-connection` checks your credentials) |
+| `python run.py all` | Arrives in phase 8 |
 | `python run.py --dry-run <command>` | Force dry-run for this command, whatever config says |
 
 ## Settings you might change (`config.yaml`)

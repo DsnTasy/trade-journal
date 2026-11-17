@@ -9,6 +9,14 @@
       <button class="approve" hx-post="/approvals/{{ r.id }}/approve" hx-target="#approval-{{ r.id }}" hx-swap="outerHTML"
               hx-confirm="Approve #{{ r.id }}: {{ r.title }}?">Approve</button>
       <button class="reject" hx-post="/approvals/{{ r.id }}/reject" hx-target="#approval-{{ r.id }}" hx-swap="outerHTML">Reject</button>
+    {% elif r.status.value == 'approved' %}
+      <button class="approve" hx-post="/approvals/{{ r.id }}/run" hx-target="#run-msg-{{ r.id }}"
+              hx-confirm="{{ 'Dry run: log what would happen?' if settings.dry_run else 'Do this for real now: ' ~ r.title ~ '?' }}">Run{{ ' (dry run)' if settings.dry_run }}</button>
+      <div id="run-msg-{{ r.id }}"></div>
+    {% elif r.result and r.result.url %}
+      <a href="{{ r.result.url }}" target="_blank" rel="noopener noreferrer">open in Shopify</a>
+    {% elif r.result and r.result.error %}
+      <small class="low">{{ r.result.error }}</small>
     {% endif %}
   </td>
 </tr>

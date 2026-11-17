@@ -21,6 +21,8 @@ from app.core.models import ActionType, ApprovalRequest, ApprovalStatus
 # and returns a dict describing what happened (stored on the request).
 Executor = Callable[[ApprovalRequest], dict]
 _executors: dict[ActionType, Executor] = {}
+# Optional: called after you approve/reject (e.g. to update a product's status).
+_decision_hooks: dict[ActionType, Callable[[Session, ApprovalRequest], None]] = {}
 
 
 class ApprovalError(RuntimeError):
@@ -32,8 +34,13 @@ def register_executor(action_type: ActionType, fn: Executor) -> None:
     _executors[action_type] = fn
 
 
+def register_decision_hook(action_type: ActionType, fn: Callable[[Session, ApprovalRequest], None]) -> None:
+    _decision_hooks[action_type] = fn
+
+
 def clear_executors() -> None:
     _executors.clear()
+    _decision_hooks.clear()
 
 
 def request_approval(
@@ -88,6 +95,9 @@ def decide(session: Session, request_id: int, *, approve: bool, note: str | None
     session.commit()
     log_event(session, module="approvals", action=req.status.value,
               message=f"#{req.id} {req.title}" + (f" - {note}" if note else ""), dry_run=dry_run)
+    hook = _decision_hooks.get(req.action_type)
+    if hook is not None:
+        hook(session, req)
     return req
 
 

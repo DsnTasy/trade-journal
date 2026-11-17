@@ -327,9 +327,49 @@ def video(
 
 
 @cli.command()
-def publish():
-    """Publish approved products (phase 7)."""
-    _not_yet("publish", 7)
+def publish(
+    send_drafts: bool = typer.Option(False, "--send-drafts", help="Send ready products to Shopify as DRAFTS (hidden)."),
+    test_connection: bool = typer.Option(False, "--test-connection", help="Check your Shopify credentials (read-only)."),
+):
+    """Shopify status. Publishing itself always needs your Approve + Run in the dashboard."""
+    from sqlalchemy import select
+
+    from app.modules.store_publisher import service
+    from app.modules.store_publisher.shopify import ShopifyError
+
+    settings, session = _session()
+    if test_connection:
+        try:
+            typer.echo(f"Connected to '{service.make_client(settings).shop_name()}' (read-only check).")
+        except (ShopifyError, OSError) as exc:
+            typer.echo(f"Not connected: {exc}")
+            raise typer.Exit(1) from exc
+        return
+    shown = [p for p in session.scalars(select(Product)) if p.status.value in
+             ("supplier_chosen", "sample_ordered", "content_ready", "approved", "published")]
+    if not shown:
+        typer.echo("No products with a chosen supplier yet.")
+        return
+    for p in shown:
+        r = service.readiness(session, settings, p)
+        listing = service.get_listing(session, p)
+        remote = f"Shopify: {listing.remote_status.lower()}" if listing.remote_status else "not on Shopify"
+        typer.echo(f"{p.name}  [{p.status.value}]  {remote}")
+        for b in r["blockers"]:
+            typer.echo(f"   x {b}")
+        for w in r["warnings"]:
+            typer.echo(f"   ! {w}")
+        if send_drafts and not r["blockers"]:
+            try:
+                res = service.send_draft(session, settings, p)
+            except (service.PublishError, ShopifyError) as exc:
+                typer.echo(f"   Not sent: {exc}")
+                continue
+            if res["action"] == "dry_run":
+                typer.echo(f"   Dry run: would {res['would']} a DRAFT at £{res['price']:.2f}. Nothing sent.")
+            else:
+                typer.echo(f"   Draft {res['action']}" + (f": {res['url']}" if res.get("url") else ""))
+    typer.echo("\nTo publish: dashboard → Store → Request publish, then Approval queue → Approve → Run.")
 
 
 @cli.command(name="all")

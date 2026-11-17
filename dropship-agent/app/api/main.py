@@ -16,7 +16,7 @@ from sqlalchemy import func, select
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
-from app.api import competitor_routes, content_routes, supplier_routes, video_routes
+from app.api import competitor_routes, content_routes, store_routes, supplier_routes, video_routes
 from app.core import approvals
 from app.core.config import Settings, get_settings
 from app.core.cost_tracker import CostTracker
@@ -47,12 +47,13 @@ NAV = [
     ("Competitor reports", "/competitors", None),
     ("Content", "/content", None),
     ("Videos", "/videos", None),
+    ("Store (Shopify)", "/store", None),
 ]
 
 
 def create_app(settings: Settings | None = None, engine: Engine | None = None, fetcher_factory=None,
-               llm_factory=None) -> FastAPI:
-    """`fetcher_factory` / `llm_factory` let tests swap in a fake website fetcher / fake Claude."""
+               llm_factory=None, shopify_factory=None) -> FastAPI:
+    """The factories let tests swap in a fake website fetcher / fake Claude / fake Shopify."""
     settings = settings or get_settings()
     engine = engine or make_engine(settings.database_url)
     init_db(engine)
@@ -149,17 +150,21 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None, f
         ))
         return render(request, "approvals.html", session, pending=pending, decided=decided)
 
-    @app.post("/approvals/{request_id}/{decision}", response_class=HTMLResponse,
-              dependencies=[Depends(require_htmx)])
-    def decide(request: Request, request_id: int, decision: str, session: Session = Depends(get_session)):
-        if decision not in ("approve", "reject"):
-            raise HTTPException(404)
+    def decide(request: Request, request_id: int, decision: str, session: Session):
         try:
             req = approvals.decide(session, request_id, approve=decision == "approve",
                                    dry_run=settings.dry_run)
         except approvals.ApprovalError as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
         return templates.TemplateResponse(request, "_approval_row.html", {"r": req, "settings": settings})
+
+    @app.post("/approvals/{request_id}/approve", response_class=HTMLResponse, dependencies=[Depends(require_htmx)])
+    def approve(request: Request, request_id: int, session: Session = Depends(get_session)):
+        return decide(request, request_id, "approve", session)
+
+    @app.post("/approvals/{request_id}/reject", response_class=HTMLResponse, dependencies=[Depends(require_htmx)])
+    def reject(request: Request, request_id: int, session: Session = Depends(get_session)):
+        return decide(request, request_id, "reject", session)
 
     @app.get("/logs", response_class=HTMLResponse)
     def logs(request: Request, session: Session = Depends(get_session)):
@@ -171,6 +176,7 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None, f
     competitor_routes.register(app, templates, settings, get_session, render, require_htmx, fetcher_factory)
     content_routes.register(app, templates, settings, get_session, render, require_htmx, llm_factory)
     video_routes.register(app, templates, settings, get_session, render, require_htmx)
+    store_routes.register(app, templates, settings, get_session, render, require_htmx, shopify_factory)
 
     # ---------------- JSON API ----------------
     @app.get("/api/status")

@@ -84,6 +84,7 @@ class Product(Base):
     # Filled in by supplier finder / profit calculator (phase 3):
     chosen_supplier_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     profit_overrides: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # your edited assumptions
+    compliance_reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
@@ -313,3 +314,24 @@ class Video(Base):
 
     product: Mapped[Product] = relationship()
     content_item: Mapped[ContentItem] = relationship()
+
+
+class StoreListing(Base):
+    """Sync state between a product here and its listing on Shopify, so edits update instead of duplicating."""
+
+    __tablename__ = "store_listings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id"), unique=True)
+    remote_id: Mapped[str | None] = mapped_column(String(100), nullable=True)  # Shopify product GID
+    variant_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    handle: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    remote_status: Mapped[str | None] = mapped_column(String(20), nullable=True)  # DRAFT / ACTIVE
+    published: Mapped[bool] = mapped_column(Boolean, default=False)
+    payload_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)  # detects changes
+    media: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # our asset id -> uploaded file name
+    last_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    approval_id: Mapped[int | None] = mapped_column(Integer, nullable=True)  # publish request
+
+    product: Mapped[Product] = relationship()

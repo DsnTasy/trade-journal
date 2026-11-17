@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Store (Shopify){% endblock %}
+{% block content %}
+<h1>Store (Shopify)</h1>
+<p class="muted">Products go to Shopify as <strong>drafts</strong> (hidden from customers). Publishing needs your approval in the
+<a href="/approvals">Approval queue</a>, then a click on <strong>Run</strong>. Sending again updates the same product, never a duplicate.</p>
+{% if not configured %}
+<p class="banner warn">Shopify isn't connected yet: set <code>store.shop</code> in config.yaml and your app's credentials in .env
+(README → Connect Shopify). You can still try everything in dry-run mode.</p>
+{% else %}
+<div class="actions-row"><button class="reject small" hx-post="/store/test-connection" hx-target="#conn">Test connection</button><span id="conn"></span></div>
+{% endif %}
+
+{% for row in rows %}
+  {% set p = row.p %}{% set r = row.r %}{% set l = row.listing %}
+  <section class="group">
+    <h2><a href="/products/{{ p.id }}">{{ p.name }}</a> <span class="status s-{{ p.status.value }}">{{ p.status.value.replace('_', ' ') }}</span>
+      {% if l and l.remote_status %}<span class="status {{ 'a-approved' if l.published else 'a-draft' }}">Shopify: {{ l.remote_status|lower }}{{ ', published' if l.published }}</span>{% endif %}</h2>
+    <p class="muted">Price {{ r.price|gbp if r.price is not none else 'not set' }} · {{ r.images|length }} licensed photo(s)
+      {% if row.url %}· <a href="{{ row.url }}" target="_blank" rel="noopener noreferrer">open in Shopify admin</a>{% endif %}
+      {% if l and l.last_synced_at %}· last synced {{ l.last_synced_at.strftime('%d %b %H:%M') }}{% endif %}</p>
+    {% if l and l.last_error %}<p class="banner danger">Last error: {{ l.last_error }}</p>{% endif %}
+    {% if r.blockers %}<ul class="reasons con">{% for b in r.blockers %}<li>{{ b }}</li>{% endfor %}</ul>{% endif %}
+    {% if r.warnings %}<ul class="notes">{% for w in r.warnings %}<li>{{ w }}</li>{% endfor %}</ul>{% endif %}
+    {% if p.compliance_flags and not p.compliance_reviewed_at %}
+      <div class="findings"><strong>Compliance check needed:</strong>
+        <ul>{% for f in p.compliance_flags %}<li>{{ f.message }}</li>{% endfor %}</ul>
+        <button class="approve small" hx-post="/store/{{ p.id }}/compliance"
+                hx-confirm="Confirm you've checked these rules and have the supplier's certificates/test reports on file?">I've checked these and have the documents</button></div>
+    {% endif %}
+    <div class="actions-row">
+      <button class="approve small" hx-post="/store/{{ p.id }}/draft" hx-target="#store-msg-{{ p.id }}" hx-indicator="#store-working-{{ p.id }}" {{ 'disabled' if r.blockers }}>
+        {{ 'Update draft on Shopify' if l and l.remote_id else 'Send to Shopify as draft' }}{{ ' (dry run)' if settings.dry_run }}</button>
+      {% if not (l and l.published) %}
+        {% if row.req and row.req.status.value in ('pending', 'approved') %}
+          <a href="/approvals">Publish request #{{ row.req.id }}: {{ row.req.status.value }} →</a>
+        {% else %}
+          <button class="approve small" hx-post="/store/{{ p.id }}/request-publish" hx-target="#store-msg-{{ p.id }}" {{ 'disabled' if r.blockers }}>Request publish</button>
+        {% endif %}
+      {% else %}
+        <button class="reject small" hx-post="/store/{{ p.id }}/unpublish" hx-target="#store-msg-{{ p.id }}" hx-confirm="Take {{ p.name }} off sale (back to draft)?">Unpublish</button>
+      {% endif %}
+      <span id="store-working-{{ p.id }}" class="htmx-indicator muted">Talking to Shopify…</span>
+    </div>
+    <div id="store-msg-{{ p.id }}"></div>
+  </section>
+{% else %}
+<p class="empty">No products ready yet. Products appear here once a supplier is chosen; they can be listed once their content is approved.</p>
+{% endfor %}
+{% endblock %}

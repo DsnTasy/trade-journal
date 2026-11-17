@@ -149,6 +149,11 @@ class VideoConfig(BaseModel):
 
 class StoreConfig(BaseModel):
     platform: str = "shopify"  # "shopify" (chosen) or "custom"
+    shop: str = ""  # your store's myshopify subdomain, e.g. "my-store" for my-store.myshopify.com
+    api_version: str = "2026-10"  # Shopify Admin API version (checked against shopify.dev, Nov 2026)
+    publication_name: str = "Online Store"  # sales channel to publish to
+    track_inventory: bool = False  # dropshipping: the supplier holds stock, so Shopify doesn't track it
+    timeout_seconds: float = Field(30, gt=0)
 
 
 class Settings(BaseModel):
@@ -171,6 +176,9 @@ class Settings(BaseModel):
     # Secrets: filled from environment variables, never from config.yaml.
     anthropic_api_key: str | None = Field(default=None, exclude=True, repr=False)
     meta_ad_library_token: str | None = Field(default=None, exclude=True, repr=False)
+    shopify_client_id: str | None = Field(default=None, exclude=True, repr=False)
+    shopify_client_secret: str | None = Field(default=None, exclude=True, repr=False)
+    shopify_access_token: str | None = Field(default=None, exclude=True, repr=False)  # older "custom app" tokens
 
     def path(self, relative: str) -> Path:
         """Turn a path from config.yaml into an absolute path inside the project."""
@@ -190,6 +198,9 @@ def load_settings(config_path: Path | None = None, env_path: Path | None = None)
     settings = Settings(**data)
     settings.anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY") or None
     settings.meta_ad_library_token = os.environ.get("META_AD_LIBRARY_TOKEN") or None
+    settings.shopify_client_id = os.environ.get("SHOPIFY_CLIENT_ID") or None
+    settings.shopify_client_secret = os.environ.get("SHOPIFY_CLIENT_SECRET") or None
+    settings.shopify_access_token = os.environ.get("SHOPIFY_ACCESS_TOKEN") or None
     return settings
 
 

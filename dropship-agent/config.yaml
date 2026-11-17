@@ -40,7 +40,12 @@ business:
   eur_to_gbp: 0.85
 
 store:
-  platform: "shopify"           # you chose Shopify (store publisher is built in phase 7)
+  platform: "shopify"
+  shop: ""                      # your store's subdomain: "my-store" for my-store.myshopify.com
+  api_version: "2026-10"        # Shopify Admin API version
+  publication_name: "Online Store"  # the sales channel products are published to
+  track_inventory: false        # dropshipping: the supplier holds stock
+  timeout_seconds: 30
 
 research:
   candidates_file: "research/candidates.csv"   # your list of product ideas (see research/README.md)
