@@ -139,6 +139,15 @@ Want ideas? Ask Claude for a list of product ideas in your niche, then score the
 
 ---
 
+## Getting updates
+
+When Claude fixes or adds something:
+1. Download the ZIP again (same link as in Part 1) and **Extract All** in Downloads.
+2. Open the new `dropship-agent` folder inside it and double-click **`update.bat`**.
+   It copies the new program files into `C:\Users\<you>\dropship-agent` and keeps your settings
+   (`config.yaml`, `brand.yaml`, `.env`), product lists, Trends files, media and results.
+3. Close the old dashboard window and double-click `start.bat`.
+
 ## If something goes wrong
 - Run `python run.py doctor` (after `.venv\Scripts\activate`) or open **Setup checklist** in the dashboard.
 - Error messages also appear on **Logs & costs**.

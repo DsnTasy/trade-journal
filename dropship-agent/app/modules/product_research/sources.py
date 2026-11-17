@@ -127,32 +127,40 @@ class TrendSeries:
     file: str
 
 
-def parse_trends_csv(path: Path) -> list[TrendSeries]:
-    """Parse a Google Trends 'Interest over time' export (multiTimeline.csv).
+DATE_CELL = re.compile(r"^\d{4}-\d{2}(-\d{2})?([T ][\d:]+)?$")
 
-    The file has a title line, a blank line, then a header like:
+
+def parse_trends_csv(path: Path) -> list[TrendSeries]:
+    """Parse a Google Trends 'Interest over time' export. Handles both layouts:
+
+    Classic Explore (multiTimeline.csv): title line, blank line, then
         Week,cat bed: (United Kingdom),dog bed: (United Kingdom)
+        2025-11-16,43,12
+    New Explore (2025+): quoted cells, often no title line and no country in the header
+        "Time","cat bed","dog bed"
+        "2026-05-03",50,0
+    The header is the row just above the first row that starts with a date.
     Values are 0-100 and only comparable WITHIN one export. '<1' means below 1.
     """
-    lines = path.read_text(encoding="utf-8-sig").splitlines()
-    header_idx = next((i for i, ln in enumerate(lines)
-                       if ln.split(",")[0].strip() in ("Week", "Month", "Day", "Time")), None)
-    if header_idx is None:
-        raise SourceError(f"{path.name} doesn't look like a Google Trends 'interest over time' export.")
-    rows = list(csv.reader(lines[header_idx:]))
-    header, data = rows[0], [r for r in rows[1:] if r and r[0].strip()]
+    rows = [r for r in csv.reader(path.read_text(encoding="utf-8-sig").splitlines())]
+    first_data = next((i for i, r in enumerate(rows) if r and DATE_CELL.match(r[0].strip())), None)
+    if first_data is None or first_data == 0 or len(rows[first_data - 1]) < 2:
+        raise SourceError(f"{path.name} doesn't look like a Google Trends 'interest over time' export "
+                          f"(expected a header row and then rows starting with dates).")
+    header = [c.strip() for c in rows[first_data - 1]]
+    data = [r for r in rows[first_data:] if r and DATE_CELL.match(r[0].strip())]
     series: list[TrendSeries] = []
     for col in range(1, len(header)):
+        if not header[col]:
+            continue
         m = re.match(r"\s*(.+?):\s*\((.+)\)\s*$", header[col])
-        term, geo = (m.group(1), m.group(2)) if m else (header[col], "unknown")
+        term, geo = (m.group(1), m.group(2)) if m else (header[col], "")
         values: list[float] = []
         for r in data:
             if col >= len(r):
                 continue
-            cell = r[col].strip()
-            if cell == "<1":
-                values.append(0.5)
-            elif cell:
+            cell = r[col].strip().replace("<1", "0.5")
+            if cell:
                 try:
                     values.append(float(cell))
                 except ValueError:
@@ -162,7 +170,7 @@ def parse_trends_csv(path: Path) -> list[TrendSeries]:
 
 
 def trend_signals(series: TrendSeries, file_date: datetime) -> list[Signal]:
-    src = f"Google Trends CSV export '{series.file}' ({series.geo})"
+    src = f"Google Trends CSV export '{series.file}'" + (f" ({series.geo})" if series.geo else "")
     v = series.values
     out: list[Signal] = []
     if len(v) >= 4:

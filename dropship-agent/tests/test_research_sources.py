@@ -70,6 +70,24 @@ def test_parse_trends_export(tmp_path):
     assert series["cat bed"].geo == "United Kingdom"
 
 
+def test_parse_new_trends_layout_with_quotes(tmp_path):
+    # The layout Google's redesigned Explore page downloads (seen on a real export, Nov 2026).
+    rows = "\n".join(f'"2026-{(i // 4) % 12 + 1:02d}-{i % 4 * 7 + 1:02d}",{30 + i},0,{20 + i % 5},0' for i in range(52))
+    f = write(tmp_path / "trends1.csv.csv",
+              '"Time","pet hair remover","dog paw cleaner","dog car seat cover","car seat gap filler"\n' + rows + "\n")
+    series = {s.term: s for s in parse_trends_csv(f)}
+    assert set(series) == {"pet hair remover", "dog paw cleaner", "dog car seat cover", "car seat gap filler"}
+    assert len(series["pet hair remover"].values) == 52 and series["pet hair remover"].values[0] == 30
+    sig = {s.metric: s for s in trend_signals(series["pet hair remover"], datetime.now(UTC))}
+    assert sig["search_interest"].value > 0 and "trends1.csv.csv" in sig["search_interest"].source
+    assert "()" not in sig["search_interest"].source
+
+
+def test_parse_new_layout_with_title_lines_and_less_than_one(tmp_path):
+    f = write(tmp_path / "t.csv", 'Interest over time\n\n"Week","cat bed"\n"2026-01-04","<1"\n"2026-01-11","5"\n')
+    assert parse_trends_csv(f)[0].values == [0.5, 5.0]
+
+
 def test_trend_signals_need_enough_points(tmp_path):
     f = write(tmp_path / "t.csv", trends_csv({"x": [50] * 4}))
     names = {s.metric for s in trend_signals(parse_trends_csv(f)[0], datetime.now(UTC))}
